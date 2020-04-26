@@ -2,7 +2,7 @@ INSTALLATION
 
 1. Vorbereitung
 - Auf den PV und Batteriewechselrichter von SMA muss MODBUS TCP aktiviert sein!
-- Im SunnyPortal miss die prognosebasierte Ladung deaktiviert werden!
+- Im SunnyPortal muss die prognosebasierte Ladung deaktiviert werden!
 
 2. ioBroker Installation
 
