@@ -5,7 +5,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 
 var pvday = 0,
     pvdayold = 0,
-    pvdata = "javascript.0.electricity.power.PVTagesertrag";
+    pvdata = "modbus.0.inputRegisters.30535_PVTagesertrag"; /*PV Tagesertrag aus PV-WR*/
 
 function sendData() {
     pvday = getState(pvdata).val;
