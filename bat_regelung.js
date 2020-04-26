@@ -97,7 +97,7 @@ function processing() {
         lowprice[x] = [poi[x][0]];
       }
     };
-    console.log(lowprice.length)
+    //console.log(lowprice.length)
 
     if (compareTime(startTime0, endTime0, "between"))  {
       if (price0) {
