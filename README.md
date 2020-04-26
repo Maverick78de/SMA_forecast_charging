@@ -9,5 +9,5 @@ Entsprechende Code Anpassungen sollten sich aus dem Quelltext entnehmen lassen.
 Zusätzlich ist eine Ladung mit Netzstrom implementiert bei Einsatz dynamischer Strompreise des Anbieters Awattar (https://www.awattar.de/). 
 Dies ermöglich Lade- und Entladeregelungen nach Strompreisen, dies ist z.b sinnvoll bei stark negativen Strompreisen. Diese Funktion ist optional.
 
-Diese Scripte berücksichtigen keine Verbraucher in den Planungen! Die Arbeit der Scripte beruhen ausschließlich auf Standort bezogene Prognosen. Daher empfielt es sich die Rückübermittlung der Anlagendatenb an Solcast zu nutzen, da hier die Genauigkeiten nach ca 6 Wochen verbessert werden können (Lerneffekt).
+Diese Scripte berücksichtigen keine Verbraucher in den Planungen! Die Arbeit der Scripte beruhen ausschließlich auf Standort bezogene Prognosen. Daher empfielt es sich die Rückübermittlung der Anlagendaten an Solcast zu nutzen, da hier die Genauigkeiten nach ca 6 Wochen verbessert werden können (Lerneffekt).
 
