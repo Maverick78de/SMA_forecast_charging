@@ -16,6 +16,7 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 -> siehe dazu Screenshots als Beispiele.
 - nähere Angaben zu den benötigten Modbus Registern bitte der jeweiligen Modbus Dokumentation des Gerätes entnehmen,
   die gezeigten Register beziehen sich nur auf ein Sunny Island 6.0H-11 und einem STP9.0-20!
+- In den Einstellungen der ScriptEngine Instanz muss das Kommando "exec" erlaubt werden.
 
 3. Solcast Account anlegen
 -> https://toolkit.solcast.com.au/
