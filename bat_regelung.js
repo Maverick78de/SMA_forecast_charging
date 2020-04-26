@@ -69,12 +69,12 @@ function processing() {
 //Parametrierung Bleispeicher
   if (pb_bat == 1) {
     ChaTm = Math.ceil((batcap * ((85 - batsoc) / 100)/batwr_pwr)*lossfact);
-    //PB float situation
-    if ( batsoc >= 85 && RmgChaTm == 0 ) {
-      ChaTm =  Math.ceil((batcap * ((100 - batsoc) / 100)/batwr_pwr)*lossfact);
-    }
     if ( ChaTm == 0 ) {
       ChaTm = RmgChaTm
+    }
+    //PB float situation "Erhaltungsladung"
+    if ( batsoc >= 85 && RmgChaTm == 0 ) {
+      ChaTm =  0;
     }
   }
 // Ende der Parametrierung
