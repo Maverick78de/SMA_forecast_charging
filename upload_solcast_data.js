@@ -28,7 +28,7 @@ function sendData() {
         var mainlist = '{"measurements":' + json + '}';
         // Requiring fs module in which writeFile function is defined. 
         const fs = require('fs');
-        // Write data in 'Output.txt' . 
+        // Workaround - HTTP Post über externes Script, FIX-IT!!!!!
         fs.writeFileSync('/tmp/solcast.txt', mainlist)  
         exec('/usr/local/bin/upload_solcast.sh', function(err, stdout, stderr) {
             if (err) {
