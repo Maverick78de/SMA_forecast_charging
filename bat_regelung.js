@@ -13,7 +13,7 @@ var Interval,
     bat_grenze = 15, /*mindestladung der Batterie, nicht absolutwert sondern unterer entladegrenze des Systems, Bei Saisonbetrieb variabel!*/
     batwr_pwr = 4600, /*Ladeleistung des BatterieWR*/
     lossfact = 1.1, /*Ladeverlust Factor 1.1 = 10% Ladeverlust*/
-    pb_bat = 1; /*Speicher ist Blei (=1), Blei Speicher laden nicht bis 100% im normalen Ladezyklus. Die Ladekurve flacht ab 85% extrem ab, daher wird nur bis 85% berechnet zur optimalen Energieausnutzung*/
+    pb_bat = 1; pb_bat = 1; /*Speicher ist Blei (=1) / Lithium (=0), Blei Speicher laden nicht bis 100% im normalen Ladezyklus. Die Ladekurve flacht ab 85% extrem ab, daher wird nur bis 85% berechnet zur optimalen Energieausnutzung*/
 
 // BAT-WR Register
 var CmpBMSOpMod = "modbus.2.holdingRegisters.40236_CmpBMSOpMod"/*Betriebsart des BMS*/,
