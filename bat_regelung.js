@@ -162,6 +162,7 @@ function processing() {
 
   // *Neu* Entzerrung des Ladevorgangs auf die Dauer der Anlagenbegrenzung
   if ( ChaTm > 0 && (ChaTm*2) < pvfc.length){
+	var ChaTm_old = ChaTm;
     ChaTm = Math.floor(pvfc.length/2);
   };
   // verschieben des Ladevorgangs in den Bereich der PV Limitierung.
@@ -172,7 +173,7 @@ function processing() {
       console.log(pvfc[h][1] + ', ' + pvfc[h][2] + ', ' + pvfc[h][0])
       if (compareTime(pvfc[h][1], pvfc[h][2], "between")){ 
         bms = 2289;
-        maxchrg = Math.round(batwr_pwr*(ChaTm*2)/pvfc.length);
+        maxchrg = Math.round(batwr_pwr*(ChaTm_old*2)/pvfc.length);
         maxdischrg = maxdischrg_def,
         SpntCom = SpntCom_def,
         PwrAtCom = PwrAtCom_def;
