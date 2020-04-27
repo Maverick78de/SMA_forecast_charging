@@ -34,7 +34,7 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
   Wer das nicht möchte oder kann, braucht keine Daten zu Solcast senden, dies dient nur der Optimierung der Prognose.
   Z.b. per winscp auf den User pi Account und dann per ssh: 
   cp upload_solcast.sh /usr/local/bin/
-  chmod 777 /usr/local/bin/upload_solcast.sh
+  chmod 755 /usr/local/bin/upload_solcast.sh
 
 Nach einiger Zeit sollten dann in den Logs die geplanten Ladezeiten auftauchen. Erreicht die Prognose nicht die untere Schwelle 
 werden keine Ladezeiten ausgegeben!
