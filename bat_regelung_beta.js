@@ -4,41 +4,41 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
 // statische Parameter
-var Interval,
-    update = 60, /*Update interval in sek, empfohlen 30-60sek*/
+var update = 60, /*Update interval in sek, empfohlen 30-60sek*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
-    bat_grenze = 10; /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
-
-// BAT-WR Register Definition
-var CmpBMSOpMod = "modbus.2.holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart des BMS*/
-    BatChaMaxW = "modbus.2.holdingRegisters.40795_BatChaMaxW",/*Maximale Batterieladeleistung*/
-    BatDsChaMaxW = "modbus.2.holdingRegisters.40799_BatDschMaxW",/*Maximale Batterieentladeleistung*/
-    FedInSpntCom = "modbus.2.holdingRegisters.40151_FedInSpntCom", /*Wirk- und Blindleistungsregelung über Kommunikation*/
-    FedInPwrAtCom = "modbus.2.holdingRegisters.40149_FedInPwrAtCom", /*Wirkleistungsvorgabe*/
-    BAT_SoC = "modbus.2.inputRegisters.30845_BAT_SoC", /*selbserklärend ;) */
-    SelfCsmpDmLim = "modbus.2.inputRegisters.31009_SelfCsmpDmLim", /*unteres Entladelimit Eigenverbrauchsbereich (Saisonbetrieb)*/
-    RemainChrgTime = "modbus.2.inputRegisters.31007_RmgChaTm", /*verbleibende Restladezeit für Boost Ladung (nur PB Speicher?)*/
-    PowerOut = "modbus.2.inputRegisters.30867_TotWOut", /*aktuelle Einspeiseleistung am Netzanschlußpunkt*/
-    BatCap = "modbus.2.holdingRegisters.40187_BatCap", /*Nennkapazität Batterie*/
-    WMaxCha ="modbus.2.holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
-    WMaxDsch = "modbus.2.holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
-    ChaFact = "modbus.2.inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
-    BatType = "modbus.2.holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
-    /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
-    bms_def = 2424,
-    SpntCom_def = 803;
+    bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
+    ModBusBat = "modbus.2"; /*ID der Modbusinstanz im IObroker für den BatterieWR*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
-    gridprice = 16.992 /*(netto bezugspreis)*/,
+    gridprice = 16.992, /*(netto bezugspreis)*/
     taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 12.31,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
-    vis = 1, /*visualisierung nutzen?*/
-    Metering_WhIn = "modbus.2.inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
-    Metering_WhOut = "modbus.2.inputRegisters.30597_Metering_WhOut"; /*WR Wh entladen*/
+    vis = 1; /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/ 
 // Ende Awattar
+
+// BAT-WR Register Definition, nur bei Bedarf anpassen
+var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart des BMS*/
+    BatChaMaxW = ModBusBat + ".holdingRegisters.40795_BatChaMaxW",/*Maximale Batterieladeleistung*/
+    BatDsChaMaxW = ModBusBat + ".holdingRegisters.40799_BatDschMaxW",/*Maximale Batterieentladeleistung*/
+    FedInSpntCom = ModBusBat + ".holdingRegisters.40151_FedInSpntCom", /*Wirk- und Blindleistungsregelung über Kommunikation*/
+    FedInPwrAtCom = ModBusBat + ".holdingRegisters.40149_FedInPwrAtCom", /*Wirkleistungsvorgabe*/
+    BAT_SoC = ModBusBat + ".inputRegisters.30845_BAT_SoC", /*selbserklärend ;) */
+    SelfCsmpDmLim = ModBusBat + ".inputRegisters.31009_SelfCsmpDmLim", /*unteres Entladelimit Eigenverbrauchsbereich (Saisonbetrieb)*/
+    RemainChrgTime = ModBusBat + ".inputRegisters.31007_RmgChaTm", /*verbleibende Restladezeit für Boost Ladung (nur PB Speicher?)*/
+    PowerOut = ModBusBat + ".inputRegisters.30867_TotWOut", /*aktuelle Einspeiseleistung am Netzanschlußpunkt*/
+    BatCap = ModBusBat + ".holdingRegisters.40187_BatCap", /*Nennkapazität Batterie*/
+    WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
+    WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
+    ChaFact = ModBusBat + ".inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
+    BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
+    Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
+    Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
+    /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
+    bms_def = 2424,
+    SpntCom_def = 803;
 
 // ab hier Programmcode, nichts ändern!
 function processing() {
@@ -210,11 +210,25 @@ setState(BatDsChaMaxW, maxdischrg);
 setState(FedInSpntCom, SpntCom);
 setState(FedInPwrAtCom, PwrAtCom);
 if (awattar == 1 && vis == 1){
+  createState("javascript.0.electricity.prices.batprice", 0, {
+                    read: true,
+                    write: true,
+                    name: "Bat_Preis",
+                    type: "number",
+                    def: 0
+                });
+  createState("javascript.0.electricity.prices.PVprice", 0, {
+                    read: true,
+                    write: true,
+                    name: "PV_Preis",
+                    type: "number",
+                    def: 0
+                });                
   setState("javascript.0.electricity.prices.batprice",stop_discharge); /*dient nur für Visualisierung*/
   setState("javascript.0.electricity.prices.PVprice", start_charge); /*dient nur für Visualisierung*/
 };
 };
 
-Interval = setInterval(function () {
+var Interval = setInterval(function () {
   processing(); /*start processing in interval*/
 }, (update*1000));
