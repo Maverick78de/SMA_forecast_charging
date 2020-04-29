@@ -13,7 +13,7 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 
 2.2. Modbus Instanzen einrichten
 - es braucht 2 Instanzen von Modbus, 1x für den PV Wechselrichter und 1x für den Batterie Wechselrichter
--> siehe dazu Screenshots als Beispiele.
+- Register aus dem Unterordner Register/ am besten importieren! Hat man weniger Arbeit mit den Scripten.
 - nähere Angaben zu den benötigten Modbus Registern bitte der jeweiligen Modbus Dokumentation des Gerätes entnehmen,
   die gezeigten Register beziehen sich nur auf ein Sunny Island 6.0H-11 und einem STP9.0-20!
 - In den Einstellungen der ScriptEngine Instanz muss das Kommando "exec" erlaubt werden.
