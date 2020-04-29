@@ -74,6 +74,10 @@ function processing() {
         stop_discharge = start_charge * loadfact;
   };  
 //Parametrierung Speicher
+  // externes BMS kein lossfact über Modbus
+  if (bat == 1785) {
+    lossfact = 1;
+  }
   // Lademenge
   var ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
   if (bat != 1785) /* 1785 = Li-Ion*/{
