@@ -1,0 +1,13 @@
+Eingangsregister:
+
+address	name	description	unit	type	len	factor	offset	role	room	
+30775	PVLeistung		W	int32be	2	1	0	value		
+30535	PVTagesertrag		kWh	uint32be	2	0.001	0	value		
+30529	PVGesamtertrag		kWh	uint32be	2	0.001	0	value		
+30837	Wirkleistungssollwert	Wirkleistungssollwert	W	uint32be	2	1	0	value		
+
+Holding Register:
+
+address	name	description	unit	type	len	factor	offset	role	room	poll	wp
+40212	Wirkleistungssollwert	Wirkleistungssollwert	W	uint32be	2	1	0	value		true	false	
+40915	Wirkleistungsgenze	Wirkleistungsgenze	W	uint32be	2	1	0	value		true	false	
