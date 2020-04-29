@@ -5,15 +5,12 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 
 // statische Parameter
 var Interval,
-    batcap = 25344, /*Batterie Kapazität in Wh*/
+    update = 60, /*Update interval in sek, empfohlen 30-60sek*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
-    surlimit = 33, /*pv einspeise limit in % */
-    bat_grenze = 15, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
-    batwr_pwr = 4600, /*Ladeleistung des BatterieWR*/
-    lossfact = 1.1, /*Ladeverlust Factor 1.1 = 10% Ladeverlust*/
-    pb_bat = 1; /*Speicher ist Blei (=1)/Lithium(=0), Blei Speicher laden nicht bis 100% im normalen Ladezyklus. Die Ladekurve flacht ab 85% extrem ab, daher wird nur bis 85% berechnet zur optimalen Energieausnutzung*/
+    surlimit = 50, /*pv einspeise limit in % */
+    bat_grenze = 10; /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
 
-// BAT-WR Register
+// BAT-WR Register Definition
 var CmpBMSOpMod = "modbus.2.holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart des BMS*/
     BatChaMaxW = "modbus.2.holdingRegisters.40795_BatChaMaxW",/*Maximale Batterieladeleistung*/
     BatDsChaMaxW = "modbus.2.holdingRegisters.40799_BatDschMaxW",/*Maximale Batterieentladeleistung*/
@@ -22,13 +19,15 @@ var CmpBMSOpMod = "modbus.2.holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart de
     BAT_SoC = "modbus.2.inputRegisters.30845_BAT_SoC", /*selbserklärend ;) */
     SelfCsmpDmLim = "modbus.2.inputRegisters.31009_SelfCsmpDmLim", /*unteres Entladelimit Eigenverbrauchsbereich (Saisonbetrieb)*/
     RemainChrgTime = "modbus.2.inputRegisters.31007_RmgChaTm", /*verbleibende Restladezeit für Boost Ladung (nur PB Speicher?)*/
-    PowerOut = "modbus.2.inputRegisters.30867_TotWOut", /*aktuelle Einspeiseleistung am Netzanschlußpunkt
+    PowerOut = "modbus.2.inputRegisters.30867_TotWOut", /*aktuelle Einspeiseleistung am Netzanschlußpunkt*/
+    BatCap = "modbus.2.holdingRegisters.40187_BatCap", /*Nennkapazität Batterie*/
+    WMaxCha ="modbus.2.holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
+    WMaxDsch = "modbus.2.holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
+    ChaFact = "modbus.2.inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
+    BatType = "modbus.2.holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
-    maxchrg_def = 5100,
-    maxdischrg_def = 5100,
-    SpntCom_def = 803,
-    PwrAtCom_def = 5100;
+    SpntCom_def = 803;
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
@@ -45,11 +44,17 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
 function processing() {
 // Start der Parametrierung
   var batsoc = getState(BAT_SoC).val,
+      batcap = getState(BatCap).val,
       batlimit = getState(SelfCsmpDmLim).val,
       RmgChaTm = getState(RemainChrgTime).val/3600,
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
-      ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact),
+      maxchrg_def = getState(WMaxCha).val,
+      maxdischrg_def = getState(WMaxDsch).val,
+      lossfact = getState(ChaFact).val,
+      bat = getState(BatType).val,
+      PwrAtCom_def = maxchrg_def,
+      batwr_pwr = maxchrg_def,
       pvlimit = (pvpeak / 100 * surlimit),
       /* Default Werte setzen*/
       bms = bms_def, 
@@ -57,6 +62,7 @@ function processing() {
       maxdischrg = maxdischrg_def,
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def;
+
 //nur für Awattar
   if (awattar == 1) {
     var startTime0 = getState("javascript.0.electricity.prices.0.startTime").val,
@@ -67,20 +73,16 @@ function processing() {
         loadfact = 1-(outwh/inwh)+1,
         stop_discharge = start_charge * loadfact;
   };  
-//Parametrierung Bleispeicher
-  if (pb_bat == 1) {
-    ChaEnrg = Math.ceil((batcap * (85 - batsoc) / 100)*lossfact);
+//Parametrierung Speicher
+  // Lademenge
+  var ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
+  if (bat != 1785) /* 1785 = Li-Ion*/{
+    ChaEnrg = Math.min(Math.ceil((batcap * (80 - batsoc) / 100)*lossfact), 0);
   }
-  if (ChaEnrg < 0) {
-    ChaEnrg = 0
-  }
-  var ChaTm = ChaEnrg/batwr_pwr;
-  if ( ChaTm == 0 ) {
+  var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
+  if ( bat != 1785 && ChaTm <= 0 ) {
     ChaTm = RmgChaTm
-  }
-  //PB float situation "Erhaltungsladung"
-  if ( batsoc >= 85 && RmgChaTm == 0 ) {
-    ChaTm = 0;
+    ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact); //Restberechnung für Pb
   }
   
 // Ende der Parametrierung
@@ -182,7 +184,7 @@ function processing() {
       get_wh = get_wh + ((pvfc[k][0]/2)-(pvlimit/2)) // wieviele Wh Überschuss???
     }
     if (get_wh > ChaEnrg && ChaEnrg > 0){
-      max_pwr = Math.min(Math.round(pvfc[0][0]-pvlimit+(cur_power_out-pvlimit)), 0) /*berücksichtigung der reellen Einspeiseleistung, statt default wert.*/
+      max_pwr = Math.min(Math.round(pvfc[0][0]-pvlimit/*+(cur_power_out-pvlimit)*/), 0) /*Defekt berücksichtigung der reellen Einspeiseleistung, statt default wert.*/
     }
     //berechnung Ende
     console.log(get_wh)
@@ -215,4 +217,4 @@ if (awattar == 1 && vis == 1){
 
 Interval = setInterval(function () {
   processing(); /*start processing in interval*/
-}, 60000);
+}, (update*1000));
