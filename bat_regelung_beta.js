@@ -8,7 +8,7 @@ var update = 60, /*Update interval in sek, empfohlen 30-60sek*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
-    ModBusBat = "modbus.2"; /*ID der Modbusinstanz im IObroker für den BatterieWR*/
+    ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
