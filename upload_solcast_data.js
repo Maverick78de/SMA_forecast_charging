@@ -50,7 +50,7 @@ function sendData() {
     };
 };
 
-//sendData()   
-schedule("*/5 * * * *", function () {
-    sendData()   
-})
+sendData()   //initial daten holen
+var Interval = setInterval(function () {
+  sendData(); /*start processing in interval*/
+}, (300000));
