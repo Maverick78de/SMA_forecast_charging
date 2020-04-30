@@ -3,9 +3,28 @@ MIT License - see LICENSE.md
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
-var pvday = 0,
-    pvdayold = 0,
-    pvdata = "modbus.0.inputRegisters.30535_PVTagesertrag"; /*PV Tagesertrag aus PV-WR*/
+var site_id = "XXXX-XXXX-XXXX-XXXX", /*id der anlage*/
+    key_id = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyy", /*API Key*/
+    pvdata = "modbus.1.inputRegisters.30535_PVTagesertrag", /*Objekt PV Wechselrichter Tagesertrag*/
+    pvday = 0, /*default nicht ändern*/
+    pvdayold = 0; /*default nicht ändern*/
+
+const site = "https://api.solcast.com.au/rooftop_sites/" + site_id +"/measurements?format=json&api_key="+ key_id; 
+var request = require('request');
+
+function post_data(json_data){
+    request.post({
+        uri: site,
+        headers: {'Content-Type': 'application/json'},
+        body: json_data
+        }, function (error, response, body) {
+           if (error) {console.log(error)}
+           //if (!error) {
+           //console.log(response)
+           //}
+        }
+    );
+};
 
 function sendData() {
     pvday = getState(pvdata).val;
@@ -25,17 +44,8 @@ function sendData() {
         list[0].total_power = value;
         var json = JSON.stringify(list);
         //console.log(json);
-        var mainlist = '{"measurements":' + json + '}';
-        // Requiring fs module in which writeFile function is defined. 
-        const fs = require('fs');
-        // Workaround - HTTP Post über externes Script, FIX-IT!!!!!
-        fs.writeFileSync('/tmp/solcast.txt', mainlist)  
-        exec('/usr/local/bin/upload_solcast.sh', function(err, stdout, stderr) {
-            if (err) {
-                console.log(err);
-                return;
-            };
-        });
+        var json_data = '{"measurements":' + json + '}';
+        post_data(json_data);
         pvdayold = pvday;
     };
 };
