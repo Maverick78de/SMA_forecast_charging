@@ -28,15 +28,6 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 - in dem Javascript Adapter mehrere Javascripte anlegen und benennen und per Copy und Paste aus dem Original übernehmen, 
   bis auf upload_solcast.sh. Die Awattar Scripte sind optional!
 - in den Scripten die dokumentierten Parameter anpassen!
-- Sonderfall "upload_solcast.sh": zur Rückmeldung der Anlagenleistung an Solcast muss aktuell ein curl Aufruf genutzt werden. 
-  Daher upload_solcast.sh nach /usr/local/bin/ auf dem ioBroker Rechner kopieren, insofern hier Linux zum Einsatz kommt. 
-  Vorher die api_key und key_id eintragen
-  Wer das nicht möchte oder kann, braucht keine Daten zu Solcast senden, dies dient nur der Optimierung der Prognose.
-  Z.b. per winscp auf den User pi Account und dann per ssh: 
-  
-  cp upload_solcast.sh /usr/local/bin/
- 
-  chmod 755 /usr/local/bin/upload_solcast.sh
 
 Nach einiger Zeit sollten dann in den Logs die geplanten Ladezeiten auftauchen. Erreicht die Prognose nicht die untere Schwelle 
 werden keine Ladezeiten ausgegeben!
