@@ -8,6 +8,7 @@ var update = 10, /*Update interval in sek*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
+    grundlast = 200, /*Grundlast in Watt falls bekannt*/
     ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
 
 // ab hier Awattar Bereich
@@ -37,10 +38,10 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
     Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
+    PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
-    SpntCom_def = 803,
-    max_pwr_remember = 0;
+    SpntCom_def = 803;
 
 // ab hier Programmcode, nichts ändern!
 function processing() {
@@ -58,8 +59,8 @@ function processing() {
       PwrAtCom_def = maxchrg_def,
       lossfact = getState(ChaFact).val,
       bat = getState(BatType).val,
-      
-      pvlimit = (pvpeak / 100 * surlimit),
+      power_ac = getState(PowerAC).val*-1,
+      pvlimit = (pvpeak / 100 * surlimit)+grundlast,
       /* Default Werte setzen*/
       bms = bms_def, 
       maxchrg = maxchrg_def,
@@ -195,20 +196,18 @@ function processing() {
       ChaTm = pvfc.length/2
       var current_pwr_diff = 0-pvlimit+cur_power_out+100
       //console.log(current_pwr_diff)
-      //console.log(max_pwr_remember)
-      max_pwr = Math.round(max_pwr_remember+current_pwr_diff)
-      if ( max_pwr_remember <= 0 && current_pwr_diff < 0 ){
+      //console.log(power_ac)
+      max_pwr = Math.round(power_ac+current_pwr_diff)
+      if ( power_ac <= 0 && current_pwr_diff < 0 ){
         max_pwr = 0
       }
       //aus der begrenzung holen.
-      if (max_pwr_remember <= 0 && current_pwr_diff > 0 ){ 
+      if (power_ac <= 10 && current_pwr_diff > 0 ){ 
         max_pwr = Math.round(pvfc[0][0]-pvlimit)
         if (current_pwr_diff > max_pwr){
           max_pwr = current_pwr_diff
         }
       }
-      max_pwr_remember = max_pwr
-      //console.log(max_pwr_remember)
       //max_pwr = Math.round(pvfc[0][0]-pvlimit)
     }
 
