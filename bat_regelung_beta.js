@@ -12,12 +12,12 @@ var update = 10, /*Update interval in sek*/
     ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
 
 // ab hier Awattar Bereich
-var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
+var awattar = 0, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     gridprice = 16.992, /*(netto bezugspreis)*/
     taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 12.31,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
-    vis = 1; /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/ 
+    vis = 0; /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/ 
 // Ende Awattar
 
     // BAT-WR Register Definition, nur bei Bedarf anpassen
