@@ -4,10 +4,10 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
 // statische Parameter
-var update = 60, /*Update interval in sek, empfohlen 30-60sek*/
+var update = 10, /*Update interval in sek*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
-    bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% Mindestladung = 10*/
+    bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
 
 // ab hier Awattar Bereich
@@ -19,7 +19,7 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     vis = 1; /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/ 
 // Ende Awattar
 
-// BAT-WR Register Definition, nur bei Bedarf anpassen
+    // BAT-WR Register Definition, nur bei Bedarf anpassen
 var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart des BMS*/
     BatChaMaxW = ModBusBat + ".holdingRegisters.40795_BatChaMaxW",/*Maximale Batterieladeleistung*/
     BatDsChaMaxW = ModBusBat + ".holdingRegisters.40799_BatDschMaxW",/*Maximale Batterieentladeleistung*/
@@ -33,12 +33,14 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
     ChaFact = ModBusBat + ".inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
+    GridVolt1 =  ModBusBat + ".inputRegisters.30783_GridV1", /*Netzspannung am WR*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
     Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
-    SpntCom_def = 803;
+    SpntCom_def = 803,
+    max_pwr_remember = 0;
 
 // ab hier Programmcode, nichts ändern!
 function processing() {
@@ -48,13 +50,15 @@ function processing() {
       batlimit = getState(SelfCsmpDmLim).val,
       RmgChaTm = getState(RemainChrgTime).val/3600,
       cur_power_out = getState(PowerOut).val,
+      gridv1 = getState(GridVolt1).val,
       batminlimit = batlimit+bat_grenze,
-      maxchrg_def = getState(WMaxCha).val,
-      maxdischrg_def = getState(WMaxDsch).val,
+      batwr_pwr = getState(WMaxCha).val/230*gridv1,
+      maxchrg_def = getState(WMaxCha).val/230*255,
+      maxdischrg_def = getState(WMaxDsch).val/230*255,
+      PwrAtCom_def = maxchrg_def,
       lossfact = getState(ChaFact).val,
       bat = getState(BatType).val,
-      PwrAtCom_def = maxchrg_def,
-      batwr_pwr = maxchrg_def,
+      
       pvlimit = (pvpeak / 100 * surlimit),
       /* Default Werte setzen*/
       bms = bms_def, 
@@ -79,19 +83,22 @@ function processing() {
     lossfact = 1;
   }
   // Lademenge
-  var ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
+  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
+  var ChaEnrg = ChaEnrg_full
   if (bat != 1785) /* 1785 = Li-Ion*/{
-    ChaEnrg = Math.min(Math.ceil((batcap * (80 - batsoc) / 100)*lossfact), 0);
+    ChaEnrg = Math.max(Math.ceil((batcap * (85 - batsoc) / 100)*lossfact), 0);
   }
+
   var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
+
   if ( bat != 1785 && ChaTm <= 0 ) {
     ChaTm = RmgChaTm
-    ChaEnrg = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact); //Restberechnung für Pb
+    ChaEnrg = ChaEnrg_full
   }
-  
+  //console.log(ChaTm + "+" + ChaEnrg)
 // Ende der Parametrierung
-  console.log(ChaEnrg + "Wh")
-  console.log(ChaTm.toFixed(1) + "h");  
+  //console.log("Lademenge " + ChaEnrg + "Wh")
+  //console.log("Restladezeit " + ChaTm.toFixed(1) + "h");
 
 // Start der Awattar Sektion
   if (awattar == 1){
@@ -110,10 +117,10 @@ function processing() {
         lowprice[x] = [poi[x][0]];
       }
     };
-    //console.log(lowprice.length)
 
     if (compareTime(startTime0, endTime0, "between"))  {
       if (price0) {
+        // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis und wenn batmindesladung erreicht ist. (Reserve)
         if (price0 < stop_discharge && batsoc <= batminlimit) {
           bms = 2290;
           maxdischrg = 0;
@@ -167,34 +174,53 @@ function processing() {
             f++;
         };
     };
-  //console.log(pvfc);
   
   pvfc.sort(function(b, a){
             return a[0] - b[0];
   });
 
-  var ChaTm_old = ChaTm;
   var max_pwr = batwr_pwr;
   // verschieben des Ladevorgangs in den Bereich der PV Limitierung.
   if ( ChaTm > 0 && (ChaTm*2) <= pvfc.length && batsoc >= batminlimit ) {
     bms = 2289;
     maxchrg = 0;
-    // *Neu* Entzerrung des Ladevorgangs auf die Dauer der Anlagenbegrenzung
-    ChaTm = pvfc.length/2;
-    max_pwr = Math.round(batwr_pwr*ChaTm_old/ChaTm);
     //berechnung zur entzerrung entlang der pv kurve, oberhalb des einspeiselimits
     var get_wh = 0;
     for (let k = 0; k < pvfc.length; k++) {
       get_wh = get_wh + ((pvfc[k][0]/2)-(pvlimit/2)) // wieviele Wh Überschuss???
     }
-    if (get_wh > ChaEnrg && ChaEnrg > 0){
-      max_pwr = Math.min(Math.round(pvfc[0][0]-pvlimit/*+(cur_power_out-pvlimit)*/), 0) /*Defekt berücksichtigung der reellen Einspeiseleistung, statt default wert.*/
+    //console.log("Überschuß " + get_wh.toFixed(0) + "Wh")
+
+    if (get_wh >= ChaEnrg && ChaEnrg > 0){
+      ChaTm = pvfc.length/2
+      var current_pwr_diff = 0-pvlimit+cur_power_out+100
+      //console.log(current_pwr_diff)
+      //console.log(max_pwr_remember)
+      max_pwr = Math.round(max_pwr_remember+current_pwr_diff)
+      if ( max_pwr_remember <= 0 && current_pwr_diff < 0 ){
+        max_pwr = 0
+      }
+      //aus der begrenzung holen.
+      if (max_pwr_remember <= 0 && current_pwr_diff > 0 ){ 
+        max_pwr = Math.round(pvfc[0][0]-pvlimit)
+        if (current_pwr_diff > max_pwr){
+          max_pwr = current_pwr_diff
+        }
+      }
+      max_pwr_remember = max_pwr
+      //console.log(max_pwr_remember)
+      //max_pwr = Math.round(pvfc[0][0]-pvlimit)
     }
+
+    if (get_wh < ChaEnrg && ChaEnrg > 0 && ChaTm > 0 && (ChaTm*2) < pvfc.length ){
+      ChaTm = pvfc.length/2
+      max_pwr = Math.round(ChaEnrg/ChaTm);
+    }
+    max_pwr = Math.min(Math.max(max_pwr, 0), maxchrg_def) //abfangen negativer werte, limitiere auf 0
     //berechnung Ende
-    console.log(get_wh)
 
     for (let h = 0; h < (ChaTm*2); h++) {
-      console.log(pvfc[h][1] + ', ' + pvfc[h][2] + ', ' + pvfc[h][0])
+      //console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')
       if (compareTime(pvfc[h][1], pvfc[h][2], "between")){ 
         bms = 2289;
         maxchrg = max_pwr;
