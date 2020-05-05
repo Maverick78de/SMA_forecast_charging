@@ -69,7 +69,7 @@ function processing() {
     var startTime0 = getState("javascript.0.electricity.prices.0.startTime").val,
         endTime0 = getState("javascript.0.electricity.prices.0.endTime").val,
         price0 = getState("javascript.0.electricity.prices.0.price").val,
-        loadfact = (100/lossfactor)+1,
+        loadfact = (lossfactor/100)+1,
         stop_discharge = start_charge * loadfact;
   };  
 //Parametrierung Speicher
