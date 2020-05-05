@@ -4,7 +4,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
 // statische Parameter
-var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
+var update = 15, /*Update interval in sek, 15 ist ein guter Wert, weniger führt zu problemen mit dem WR*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
@@ -40,8 +40,8 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
-    com_active = ModBusBat + ".inputRegisters.31061_ComAct", /* Steuerung verfügbar?*/
     Dev_Type = ModBusBat + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
+    GridVoltage = ModBusBat + ".inputRegisters.30783_GridV1", /*Spannung L1 am WR*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
     SpntCom_def = 803;
@@ -57,11 +57,11 @@ function processing() {
       batwr_pwr = getState(WMaxCha).val,
       maxchrg_def = batwr_pwr,
       maxdischrg_def = getState(WMaxDsch).val,
-      PwrAtCom_def = batwr_pwr,
+      gridvolt = getState(GridVoltage).val,
+      PwrAtCom_def = Math.round(batwr_pwr/230*gridvolt),
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit)+grundlast,
-      ComAct = getState(com_active).val,
       DevType = getState(Dev_Type).val,
       /* Default Werte setzen*/
 	  RmgChaTm = 0,
@@ -73,11 +73,6 @@ function processing() {
       GridWSpt = 0,
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def;
-
-  if (ComAct == 1130) {
-    console.log("Keine Kommunikation erlaubt, beende...")
-    return
-  }
 
 //nur für Awattar
   if (awattar == 1) {
@@ -201,7 +196,7 @@ function processing() {
 
     if (get_wh >= ChaEnrg && ChaEnrg > 0){
       ChaTm = pvfc.length/2
-      var current_pwr_diff = 0-pvlimit+cur_power_out+100
+      var current_pwr_diff = 100-pvlimit+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
       //console.log(current_pwr_diff)
       //console.log(power_ac)
       max_pwr = Math.round(power_ac+current_pwr_diff)
@@ -240,16 +235,17 @@ function processing() {
 
 //write data
 //console.log(bms + ', '+ maxchrg + ', '+ maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
-setState(CmpBMSOpMod, bms);
-setState(BatChaMaxW, maxchrg);
-setState(BatDsChaMaxW, maxdischrg);
-setState(FedInSpntCom, SpntCom);
-setState(FedInPwrAtCom, PwrAtCom);
+setState(CmpBMSOpMod, bms, true);
+setState(BatChaMaxW, maxchrg, true);
+setState(BatDsChaMaxW, maxdischrg, true);
+setState(FedInSpntCom, SpntCom, true);
+setState(FedInPwrAtCom, PwrAtCom, true);
 //ab SBS und SIx-12 BatWR brauchen mehr Daten
 if (DevType >= 9300){
-  setState(BatChaMinW, minchrg);
-  setState(BatDsChaMinW, mindischrg);
-  setState(SollAC, GridWSpt);
+  //delayed ab 5. register ... WR Überlastung
+  setStateDelayed(BatChaMinW, minchrg, true, 1000);
+  setStateDelayed(BatDsChaMinW, mindischrg, true, 1000);
+  setStateDelayed(SollAC, GridWSpt, true, 1000);
 }
 if (awattar == 1 && vis == 1){
   createState("javascript.0.electricity.prices.batprice", 0, {
@@ -266,8 +262,8 @@ if (awattar == 1 && vis == 1){
                     type: "number",
                     def: 0
                 });                
-  setState("javascript.0.electricity.prices.batprice",stop_discharge); /*dient nur für Visualisierung*/
-  setState("javascript.0.electricity.prices.PVprice", start_charge); /*dient nur für Visualisierung*/
+  setState("javascript.0.electricity.prices.batprice",stop_discharge, true); /*dient nur für Visualisierung*/
+  setState("javascript.0.electricity.prices.PVprice", start_charge, true); /*dient nur für Visualisierung*/
 };
 };
 
