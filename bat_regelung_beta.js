@@ -230,7 +230,7 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-console.log(bms + ', ' + maxchrg + ', ' + maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
+//console.log(bms + ', ' + maxchrg + ', ' + maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
 setState(CmpBMSOpMod, bms);
 setState(BatChaMaxW, maxchrg);
 setState(BatDsChaMaxW, maxdischrg);
