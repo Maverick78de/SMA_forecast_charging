@@ -1,0 +1,31 @@
+Input Register:
+
+address	name	description	unit	type	len	factor	offset	role	room	
+30845	BAT SoC	Current battery state of charge	%	uint32be	2	1	0	value		
+30849	BAT Temp	Battery temperature	°C	int32be	2	0.1	0	value		
+30847	BAT SOH	Current battery health	%	uint32be	2	1	0	value		
+30775	PowerAC	Leistung	W	int32be	2	1	0	value		
+31009	SelfCsmpDmLim	Untere Entladegrenze für Eigenverbrauchsbereich		uint32be	2	1	0	value		
+30577	Grid-csmp-day	Energy consumed from grid (today)	kWh	uint32be	2	0.001	0	value		
+30579	Grid-fed-day	Energy fed into grid (today)	kWh	uint32be	2	0.001	0	value		
+30867	TotWOut	Leistung Einspeisung	W	uint32be	2	1	0	value		
+30865	TotWIn	Leistung Bezug	W	uint32be	2	1	0	value		
+30993	ChaFact	Ladefaktor		uint32be	2	0.001	0	value		
+31061	ComAct	Steuerung der Batterieladung über Kommunikation verfügbar		uint32be	2	1	0	value		
+30053	DevTypeId	DeviceTyp		uint32be	2	1	0	value		
+
+Holding Register:
+
+address	name	description	unit	type	len	factor	offset	role	room	poll	wp
+40035	BatType	BatterieTyp		uint32be	2	1	0	value		true	false	
+40149	FedInPwrAtCom	Wirkleistungsvorgabe		int32be	2	1	0	value		true	false	
+40151	FedInSpntCom	Wirk- und Blindleistungsregelung über Kommunikation		uint32be	2	1	0	value		true	false	
+40187	BatCap	Nennkapazität der Batterie	Wh	uint32be	2	1	0	value		true	false	
+40189	WMaxCha	Maximale Ladeleistung des Batteriestellers	W	uint32be	2	1	0	value		true	false	
+40191	WMaxDsch	Maximale Entladeleistung des Batteriestellers	W	uint32be	2	1	0	value		true	false	
+40236	CmpBMSOpMod	Betriebsart des BMS		uint32be	2	1	0	value		true	false	
+40493	BatChaMinW	Minimale Batterieladeleistung		uint32be	2	1	0	value		true	false	
+40795	BatChaMaxW	Maximale Batterieladeleistung		uint32be	2	1	0	value		true	false	
+40799	BatDschMaxW	Maximale Batterieentladeleistung		uint32be	2	1	0	value		true	false	
+40797	BatDschMinW	Minimale Batterieentladeleistung		uint32be	2	1	0	value		true	false	
+40801	GridWSpt	Sollwert der Netzaustauschleistung		int32be	2	1	0	value		true	false	
