@@ -4,7 +4,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
 // statische Parameter
-var update = 15, /*Update interval in sek, 15 ist ein guter Wert, weniger führt zu problemen mit dem WR*/
+var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
@@ -42,7 +42,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
     Dev_Type = ModBusBat + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
     GridVoltage = ModBusBat + ".inputRegisters.30783_GridV1", /*Spannung L1 am WR*/
-    /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
     SpntCom_def = 803;
 
