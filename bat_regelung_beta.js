@@ -217,7 +217,7 @@ function processing() {
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
-      console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')
+      //console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')
       if (compareTime(pvfc[h][1], pvfc[h][2], "between")){ 
         bms = 2289;
         maxchrg = max_pwr;
