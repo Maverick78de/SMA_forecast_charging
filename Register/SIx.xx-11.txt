@@ -12,8 +12,8 @@ address	name	description	unit	type	len	factor	offset	role	room
 30867	TotWOut	Leistung Einspeisung	W	uint32be	2	1	0	value		
 30865	TotWIn	Leistung Bezug	W	uint32be	2	1	0	value		
 30993	ChaFact	Ladefaktor		uint32be	2	0.001	0	value		
-31061	ComAct	Steuerung der Batterieladung über Kommunikation verfügbar		uint32be	2	1	0	value		
 30053	DevTypeId	DeviceTyp		uint32be	2	1	0	value		
+30783	GridV1	Spannung L1	V	uint32be	2	0.01	0	value		
 
 Holding Register:
 
