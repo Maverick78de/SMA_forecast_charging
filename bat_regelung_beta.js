@@ -4,7 +4,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
 
 // statische Parameter
-var update = 10, /*Update interval in sek*/
+var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
@@ -34,7 +34,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
     ChaFact = ModBusBat + ".inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
-    GridVolt1 =  ModBusBat + ".inputRegisters.30783_GridV1", /*Netzspannung am WR*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
     Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
@@ -51,12 +50,11 @@ function processing() {
       batlimit = getState(SelfCsmpDmLim).val,
       RmgChaTm = getState(RemainChrgTime).val/3600,
       cur_power_out = getState(PowerOut).val,
-      gridv1 = getState(GridVolt1).val,
       batminlimit = batlimit+bat_grenze,
-      batwr_pwr = getState(WMaxCha).val/230*gridv1,
-      maxchrg_def = getState(WMaxCha).val/230*255,
-      maxdischrg_def = getState(WMaxDsch).val/230*255,
-      PwrAtCom_def = maxchrg_def,
+      batwr_pwr = getState(WMaxCha).val,
+      maxchrg_def = batwr_pwr,
+      maxdischrg_def = getState(WMaxDsch).val,
+      PwrAtCom_def = Math.round(maxchrg_def/230*255),
       lossfact = getState(ChaFact).val,
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
@@ -219,7 +217,7 @@ function processing() {
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
-      //console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')
+      console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')
       if (compareTime(pvfc[h][1], pvfc[h][2], "between")){ 
         bms = 2289;
         maxchrg = max_pwr;
