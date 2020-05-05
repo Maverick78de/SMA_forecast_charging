@@ -17,7 +17,9 @@ var awattar = 0, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 12.31,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
-    vis = 0; /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/ 
+    vis = 0, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
+    lossfactor = 35; /*System gesamtverlust in %, nur für Awattar Preisberechnung*/
+
 // Ende Awattar
 
     // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -34,8 +36,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
-    Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
-    Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
@@ -69,9 +69,7 @@ function processing() {
     var startTime0 = getState("javascript.0.electricity.prices.0.startTime").val,
         endTime0 = getState("javascript.0.electricity.prices.0.endTime").val,
         price0 = getState("javascript.0.electricity.prices.0.price").val,
-        inwh = getState(Metering_WhIn).val,
-        outwh = getState(Metering_WhOut).val,
-        loadfact = 1-(outwh/inwh)+1,
+        loadfact = (100/lossfactor)+1,
         stop_discharge = start_charge * loadfact;
   };  
 //Parametrierung Speicher
