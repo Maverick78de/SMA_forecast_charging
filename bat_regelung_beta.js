@@ -22,10 +22,13 @@ var awattar = 0, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
 
 // Ende Awattar
 
-    // BAT-WR Register Definition, nur bei Bedarf anpassen
+// BAT-WR Register Definition, nur bei Bedarf anpassen
 var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsart des BMS*/
+    BatChaMinW = ModBusBat + ".holdingRegisters.40493_BatChaMinW",/*Minimale Batterieladeleistung*/
     BatChaMaxW = ModBusBat + ".holdingRegisters.40795_BatChaMaxW",/*Maximale Batterieladeleistung*/
+    BatDsChaMinW = ModBusBat + ".holdingRegisters.40797_BatDschMinW",/*Minimale Batterieentladeleistung*/
     BatDsChaMaxW = ModBusBat + ".holdingRegisters.40799_BatDschMaxW",/*Maximale Batterieentladeleistung*/
+    SollAC = ModBusBat + ".holdingRegisters.40801_GridWSpt", /*Sollwert der Netzaustauschleistung*/
     FedInSpntCom = ModBusBat + ".holdingRegisters.40151_FedInSpntCom", /*Wirk- und Blindleistungsregelung über Kommunikation*/
     FedInPwrAtCom = ModBusBat + ".holdingRegisters.40149_FedInPwrAtCom", /*Wirkleistungsvorgabe*/
     BAT_SoC = ModBusBat + ".inputRegisters.30845_BAT_SoC", /*selbserklärend ;) */
@@ -37,6 +40,8 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
+    com_active = ModBusBat + ".inputRegisters.31061_ComAct", /* Steuerung verfügbar?*/
+    Dev_Type = ModBusBat + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
     /*BMS Default des BatWR (SI6.0H-11), andere WR ggf anpassen*/
     bms_def = 2424,
     SpntCom_def = 803;
@@ -52,17 +57,27 @@ function processing() {
       batwr_pwr = getState(WMaxCha).val,
       maxchrg_def = batwr_pwr,
       maxdischrg_def = getState(WMaxDsch).val,
-      PwrAtCom_def = Math.round(maxchrg_def/230*255),
+      PwrAtCom_def = batwr_pwr,
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit)+grundlast,
-      RmgChaTm = 0,
+      ComAct = getState(com_active).val,
+      DevType = getState(Dev_Type).val,
       /* Default Werte setzen*/
+	  RmgChaTm = 0,
       bms = bms_def, 
+      minchrg = 0,
       maxchrg = maxchrg_def,
+      mindischrg = 0,
       maxdischrg = maxdischrg_def,
+      GridWSpt = 0,
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def;
+
+  if (ComAct == 1130) {
+    console.log("Keine Kommunikation erlaubt, beende...")
+    return
+  }
 
 //nur für Awattar
   if (awattar == 1) {
@@ -82,7 +97,6 @@ function processing() {
   if (bat != 1785) /* 1785 = Li-Ion*/{
     ChaEnrg = Math.max(Math.ceil((batcap * (85 - batsoc) / 100)), 0);
   }
-
   var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
 
   if ( bat != 1785 && ChaTm <= 0 ) {
@@ -225,12 +239,18 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-//console.log(bms + ', ' + maxchrg + ', ' + maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
+//console.log(bms + ', '+ maxchrg + ', '+ maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
 setState(CmpBMSOpMod, bms);
 setState(BatChaMaxW, maxchrg);
 setState(BatDsChaMaxW, maxdischrg);
 setState(FedInSpntCom, SpntCom);
 setState(FedInPwrAtCom, PwrAtCom);
+//ab SBS und SIx-12 BatWR brauchen mehr Daten
+if (DevType >= 9300){
+  setState(BatChaMinW, minchrg);
+  setState(BatDsChaMinW, mindischrg);
+  setState(SollAC, GridWSpt);
+}
 if (awattar == 1 && vis == 1){
   createState("javascript.0.electricity.prices.batprice", 0, {
                     read: true,
