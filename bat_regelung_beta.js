@@ -6,7 +6,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 // statische Parameter
 var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
-    surlimit = 33, /*pv einspeise limit in % */
+    surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     grundlast = 200, /*Grundlast in Watt falls bekannt*/
     ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
@@ -33,7 +33,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     BatCap = ModBusBat + ".holdingRegisters.40187_BatCap", /*Nennkapazität Batterie*/
     WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
-    ChaFact = ModBusBat + ".inputRegisters.30993_ChaFact", /*Ladefaktor (Verlustenergie beim Laden)*/
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     Metering_WhIn = ModBusBat + ".inputRegisters.30595_Metering_WhIn", /*WR Wh geladen*/
     Metering_WhOut = ModBusBat + ".inputRegisters.30597_Metering_WhOut", /*WR Wh entladen*/
@@ -54,7 +53,6 @@ function processing() {
       maxchrg_def = batwr_pwr,
       maxdischrg_def = getState(WMaxDsch).val,
       PwrAtCom_def = Math.round(maxchrg_def/230*255),
-      lossfact = getState(ChaFact).val,
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit)+grundlast,
@@ -77,18 +75,14 @@ function processing() {
         stop_discharge = start_charge * loadfact;
   };  
 //Parametrierung Speicher
-  // externes BMS/kein PB
-  if (bat == 1785) {
-    lossfact = 1;
-  }
   if (bat != 1785) {
-     RmgChaTm = getState(RemainChrgTime).val/3600
+    RmgChaTm = getState(RemainChrgTime).val/3600
   }
   // Lademenge
-  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
+  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100))
   var ChaEnrg = ChaEnrg_full
   if (bat != 1785) /* 1785 = Li-Ion*/{
-    ChaEnrg = Math.max(Math.ceil((batcap * (85 - batsoc) / 100)*lossfact), 0);
+    ChaEnrg = Math.max(Math.ceil((batcap * (85 - batsoc) / 100)), 0);
   }
 
   var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
