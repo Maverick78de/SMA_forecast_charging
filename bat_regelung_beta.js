@@ -6,7 +6,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 // statische Parameter
 var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
-    surlimit = 50, /*pv einspeise limit in % */
+    surlimit = 33, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     grundlast = 200, /*Grundlast in Watt falls bekannt*/
     ModBusBat = "modbus.2"; /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
@@ -48,7 +48,6 @@ function processing() {
   var batsoc = getState(BAT_SoC).val,
       batcap = getState(BatCap).val,
       batlimit = getState(SelfCsmpDmLim).val,
-      RmgChaTm = getState(RemainChrgTime).val/3600,
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
       batwr_pwr = getState(WMaxCha).val,
@@ -59,6 +58,7 @@ function processing() {
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit)+grundlast,
+      RmgChaTm = 0,
       /* Default Werte setzen*/
       bms = bms_def, 
       maxchrg = maxchrg_def,
@@ -77,9 +77,12 @@ function processing() {
         stop_discharge = start_charge * loadfact;
   };  
 //Parametrierung Speicher
-  // externes BMS kein lossfact über Modbus
+  // externes BMS/kein PB
   if (bat == 1785) {
     lossfact = 1;
+  }
+  if (bat != 1785) {
+     RmgChaTm = getState(RemainChrgTime).val/3600
   }
   // Lademenge
   var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*lossfact)
