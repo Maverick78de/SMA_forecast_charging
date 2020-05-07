@@ -215,11 +215,7 @@ function processing() {
       }
       //max_pwr = Math.round(pvfc[0][0]-pvlimit)
     }
-//entfallen
-    /*if (get_wh < ChaEnrg && ChaEnrg > 0 && ChaTm > 0 && (ChaTm*2) < pvfc.length ){
-      ChaTm = pvfc.length/2
-      max_pwr = Math.round(ChaEnrg/ChaTm);
-    }*/
+
     max_pwr = Math.min(Math.max(max_pwr, 0), maxchrg_def) //abfangen negativer werte, limitiere auf 0
     //berechnung Ende
 
