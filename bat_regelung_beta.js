@@ -234,17 +234,17 @@ function processing() {
 
 //write data
 //console.log(bms + ', '+ maxchrg + ', '+ maxdischrg + ', ' + SpntCom + ', ' + PwrAtCom)
-setState(CmpBMSOpMod, bms, true);
-setState(BatChaMaxW, maxchrg, true);
-setState(BatDsChaMaxW, maxdischrg, true);
+setState(CmpBMSOpMod, bms, false);
+setState(BatChaMaxW, maxchrg, false);
+setState(BatDsChaMaxW, maxdischrg, false);
 setState(FedInSpntCom, SpntCom, true);
 setState(FedInPwrAtCom, PwrAtCom, true);
 //ab SBS und SIx-12 BatWR brauchen mehr Daten
 if (DevType >= 9300){
   //delayed ab 5. register ... WR Überlastung
-  setStateDelayed(BatChaMinW, minchrg, true, 1000);
-  setStateDelayed(BatDsChaMinW, mindischrg, true, 1000);
-  setStateDelayed(SollAC, GridWSpt, true, 1000);
+  setStateDelayed(BatChaMinW, minchrg, false, 1000);
+  setStateDelayed(BatDsChaMinW, mindischrg, false, 1000);
+  setStateDelayed(SollAC, GridWSpt, false, 1000);
 }
 if (awattar == 1 && vis == 1){
   createState("javascript.0.electricity.prices.batprice", 0, {
