@@ -19,7 +19,6 @@ address	name	description	unit	type	len	factor	offset	role	room	poll	wp
 40035	BatType	BatterieTyp		uint32be	2	1	0	value		true	false	
 40149	FedInPwrAtCom	Wirkleistungsvorgabe		int32be	2	1	0	value		true	false	
 40151	FedInSpntCom	Wirk- und Blindleistungsregelung über Kommunikation		uint32be	2	1	0	value		true	false	
-40187	BatCap	Nennkapazität der Batterie	Wh	uint32be	2	1	0	value		true	false	
 40189	WMaxCha	Maximale Ladeleistung des Batteriestellers	W	uint32be	2	1	0	value		true	false	
 40191	WMaxDsch	Maximale Entladeleistung des Batteriestellers	W	uint32be	2	1	0	value		true	false	
 40236	CmpBMSOpMod	Betriebsart des BMS		uint32be	2	1	0	value		true	false	
