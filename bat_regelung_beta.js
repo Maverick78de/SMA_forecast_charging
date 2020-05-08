@@ -9,7 +9,7 @@ var debug = 0; /*debug ausgabe ein oder aus 1/0 */
 var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     batcap = 25344, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
-    surlimit = 33, /*pv einspeise limit in % */
+    surlimit = 50, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     grundlast = 200, /*Grundlast in Watt falls bekannt*/
     wr_eff = 0.958, /* max BatWR Effizienz laut Datenblatt 0.95=95%, 1.0=100% */
@@ -186,10 +186,15 @@ function processing() {
   });
 
   var max_pwr = batwr_pwr;
+
   // verschieben des Ladevorgangs in den Bereich der PV Limitierung.
-  if ( ChaTm > 0 && (ChaTm*2) <= pvfc.length && batsoc >= batminlimit ) {
-    bms = 2289;
-    maxchrg = 0;
+  if ( ChaTm > 0 && (ChaTm*2) <= pvfc.length && batsoc >= batminlimit) {
+    var latesttime = pvfc[(pvfc.length-1)][2]
+    // Bugfix zur behebung der array interval von 30min und update interval 1h
+    if (compareTime(latesttime, null, "<=", null)) {
+      bms = 2289;
+      maxchrg = 0;
+    }
     //berechnung zur entzerrung entlang der pv kurve, oberhalb des einspeiselimits
     var get_wh = 0;
     for (let k = 0; k < pvfc.length; k++) {
@@ -197,7 +202,7 @@ function processing() {
     }
     if (debug == 1){console.log("Überschuß " + get_wh.toFixed(0) + "Wh")}
 
-    if ((ChaTm*2) < pvfc.length && ChaEnrg > 0){
+    if (get_wh >= ChaEnrg && ChaEnrg > 0){
       ChaTm = pvfc.length/2
       var current_pwr_diff = 100-pvlimit+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
       if (debug == 1){console.log(current_pwr_diff)}
@@ -213,6 +218,10 @@ function processing() {
           max_pwr = current_pwr_diff
         }
       }
+      if (get_wh < ChaEnrg && ChaEnrg > 0 && ChaTm > 0 && (ChaTm*2) < pvfc.length ){
+      ChaTm = pvfc.length/2
+      max_pwr = Math.round(ChaEnrg/ChaTm);
+      }
       //max_pwr = Math.round(pvfc[0][0]-pvlimit)
     }
 
@@ -222,7 +231,7 @@ function processing() {
     for (let h = 0; h < (ChaTm*2); h++) {
       if (debug == 1){console.log(pvfc[h][1] + '-' + pvfc[h][2] + '-> ' + pvfc[h][0]+'W')}
       if (compareTime(pvfc[h][1], pvfc[h][2], "between")){ 
-        bms = 2424;
+        bms = 2289;
         maxchrg = max_pwr;
         maxdischrg = maxdischrg_def,
         SpntCom = SpntCom_def,
