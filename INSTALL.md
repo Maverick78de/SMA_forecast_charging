@@ -5,11 +5,13 @@ INSTALLATION
 - Im SunnyPortal muss die prognosebasierte Ladung deaktiviert werden!
 
 2. ioBroker Installation
+(bitte nur Stable Versionen verwenden!)
 
 Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 
 2.1. Adapter Installation ioBroker
-- benötigt werden mindestens folgende Adapter: modbus + JavaScript
+- benötigt werden mindestens folgende Adapter: 
+  modbus + JavaScript
 
 2.2. Modbus Instanzen einrichten
 - es braucht 2 Instanzen von Modbus, 1x für den PV Wechselrichter und 1x für den Batterie Wechselrichter
@@ -17,6 +19,9 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 - nähere Angaben zu den benötigten Modbus Registern bitte der jeweiligen Modbus Dokumentation des Gerätes entnehmen,
   die gezeigten Register beziehen sich nur auf ein Sunny Island 6.0H-11 und einem STP9.0-20!
 - In den Einstellungen der ScriptEngine Instanz muss das Kommando "exec" erlaubt werden.
+
+2.3. Javascript Instanz einrichten
+- Unter "Zusätzliche NPM-Module" muss "request" eingetragen werden.
 
 3. Solcast Account anlegen
 -> https://toolkit.solcast.com.au/
