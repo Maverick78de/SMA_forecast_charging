@@ -35,7 +35,7 @@ function sendData() {
     if (pvday > 0 && pvdayold > 0){
         var end = new Date().getTime();
         var time = new Date(end).toISOString();
-        var value = ((pvday - pvdayold)*12).toFixed(3);
+        var value = Math.max(((pvday - pvdayold)*12), 0).toFixed(3);
         console.log("avg Pwr: " + value + "kW");
         var list = [];
         list[0] = {};
@@ -50,7 +50,7 @@ function sendData() {
     };
 };
 
-sendData()   //initial daten holen
+sendData()   
 var Interval = setInterval(function () {
   sendData(); /*start processing in interval*/
 }, (300000));
