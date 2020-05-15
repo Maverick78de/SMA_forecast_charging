@@ -26,11 +26,11 @@ function requestData() {
                 var starttime = Date.parse(array[i].period_end);
                 var time = new Date(starttime);
                 var readpwr = array[i].pv_estimate;
-                var pwr = Math.round(readpwr * 1000);
-                var wert = pwr; 
+                var readpwr90 = array[i].pv_estimate90;
                 list[i] = {};
                 list[i].time = time/1000;
-                list[i].watt = wert;
+                list[i].watt = Math.round(readpwr * 1000);
+                list[i].watt90 = Math.round(readpwr90 * 1000);
             };
             
             // Datenpunkte anlegen
@@ -64,15 +64,21 @@ function requestData() {
                     type: "number",
                     def: 0
                 });
+                createState(stateBaseName + "power90", 0, {
+                    read: true,
+                    write: true,
+                    name: "Power",
+                    type: "number",
+                    def: 0
+                });
                 
                 let start = new Date((list[a].time)*1000);
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
-                let power = list[a].watt;
-                
 
                 setState(stateBaseName + "startTime", startTime);
-                setState(stateBaseName + "power", power);
+                setState(stateBaseName + "power", list[a].watt);
+                setState(stateBaseName + "power90", list[a].watt90);
             }
         }
     });
