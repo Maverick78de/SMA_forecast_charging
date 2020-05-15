@@ -205,10 +205,7 @@ function processing() {
       var pvendtime = getState(Javascript + ".electricity.pvforecast."+ p + ".startTime").val,
           pvstarttime = formatDate(getDateObject((getDateObject(pvendtime).getTime() - 1800000)), "SS:mm");
       if (compareTime(pvendtime, null, "<=", null)) {
-        var minutes = 30
-        if (pvpower50 <= pvlimit){
-          minutes = Math.round(30-((((pvlimit-pvpower50)/((pvpower90-pvpower50)/40))+50)*18/60))
-        }  
+        var minutes = Math.round((((pvpower90-pvlimit)/((pvpower90-pvpower50)/40)))*18/60)
         pvfc[f] = [pvpower50, pvpower90, minutes, pvstarttime, pvendtime];
         f++;
       }
