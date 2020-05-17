@@ -17,8 +17,7 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 - es braucht 2 Instanzen von Modbus, 1x für den PV Wechselrichter und 1x für den Batterie Wechselrichter
 - Register aus dem Unterordner Register/ am besten importieren! Hat man weniger Arbeit mit den Scripten.
 - nähere Angaben zu den benötigten Modbus Registern bitte der jeweiligen Modbus Dokumentation des Gerätes entnehmen,
-  die gezeigten Register beziehen sich nur auf ein Sunny Island 6.0H-11 und einem STP9.0-20!
-- In den Einstellungen der ScriptEngine Instanz muss das Kommando "exec" erlaubt werden.
+  die im Ordner gezeigten Register beziehen sich nur auf getestete Typen.
 
 2.3. Javascript Instanz einrichten
 - Unter "Zusätzliche NPM-Module" muss "request" eingetragen werden.
@@ -30,8 +29,8 @@ Einstiegspunkt: https://www.iobroker.net/#de/documentation/
 - Resource ID und Api_key am besten irgendwo abspeichern
 
 4. Scripte
-- in dem Javascript Adapter mehrere Javascripte anlegen und benennen und per Copy und Paste aus dem Original übernehmen, 
-  bis auf upload_solcast.sh. Die Awattar Scripte sind optional!
+- in dem Javascript Adapter mehrere Javascripte anlegen und benennen und per Copy und Paste aus dem Original übernehmen. 
+  Die Awattar Scripte sind optional!
 - in den Scripten die dokumentierten Parameter anpassen!
 
 Nach einiger Zeit sollten dann in den Logs die geplanten Ladezeiten auftauchen. Erreicht die Prognose nicht die untere Schwelle 
