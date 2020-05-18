@@ -34,6 +34,7 @@ function requestData() {
             };
                     
             for(let a = 0; a < (hours*2); a++) {
+		let stateBaseName = "electricity.pvforecast." + a + "."; 
                 let start = new Date((list[a].time)*1000);
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
