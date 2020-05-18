@@ -1,3 +1,5 @@
+(STPx-TL 30 ab Firmware STPTL-30_30005R_V10!)
+
 Eingangsregister:
 
 address	name	description	unit	type	len	factor	offset	role	room	
