@@ -300,7 +300,7 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-if (lastbms != bms_def && lastbms != bms) {
+if (lastbms != bms_def && bms != bms_def) {
   if (debug == 1){console.log("Daten an WR:" + bms + ', '+ minchrg + ', '+ maxchrg + ', '+ mindischrg + ', '+ maxdischrg + ', ' + GridWSpt + ', '+ SpntCom + ', ' + PwrAtCom)}
   setState(CmpBMSOpMod, bms, false);
   setState(BatChaMaxW, maxchrg, false);
