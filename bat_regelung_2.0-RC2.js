@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/* Version 2.0-RC1*/
+/* Version 2.0-RC2*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
