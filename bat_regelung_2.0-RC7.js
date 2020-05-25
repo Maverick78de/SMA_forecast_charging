@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.0-RC6*/
+/*Version 2.0-RC7*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -262,23 +262,23 @@ function processing() {
       get_wh = get_wh + (((pvpower/2)-((pvlimit+grundlast)/2))*(minutes/30)) // wieviele Wh Überschuss???
     }
     if (debug == 1){console.log("Überschuß " + get_wh.toFixed(0) + "Wh")}
-
+	var pvlimit_calc = pvlimit
     //Scenario 4
     if (ChaEnrg > get_wh && ChaEnrg > 0 && ChaTm > 0){
       if ((ChaTm*2) <= pvfc.length){
         ChaTm = pvfc.length/2 //entzerren des Ladevorganges
       }
-      pvlimit = Math.max((Math.round(pvlimit - ((ChaEnrg - get_wh)/ChaTm))),0) //virtuelles reduzieren des pvlimits
+      pvlimit_calc = Math.max((Math.round(pvlimit - ((ChaEnrg - get_wh)/ChaTm))),0) //virtuelles reduzieren des pvlimits
       get_wh = ChaEnrg // sprungpunkt in Scenario 5 
-      if (debug == 1){console.log("Verschiebung Einspeiselimit auf " + pvlimit + "W")}
+      if (debug == 1){console.log("Verschiebung Einspeiselimit auf " + pvlimit_calc + "W")}
     }
     
     //Scenario 5
     if (get_wh >= ChaEnrg && ChaEnrg > 0){
       ChaTm = pvfc.length/2      
-      var current_pwr_diff = -pvlimit+cur_power_out
+      var current_pwr_diff = -pvlimit_calc+cur_power_out
       if (PVDevType < 9300){
-        current_pwr_diff = 100-pvlimit+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
+        current_pwr_diff = 100-pvlimit_calc+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
       }
       max_pwr = Math.round(power_ac+current_pwr_diff)
       if ( power_ac <= 0 && current_pwr_diff < 0 ){
@@ -288,7 +288,7 @@ function processing() {
       //alte WR Methode
       if (PVDevType < 9300){
         if (power_ac <= 10 && current_pwr_diff > 0 ){ 
-          max_pwr = Math.round(pvfc[0][1]-pvlimit)
+          max_pwr = Math.round(pvfc[0][1]-pvlimit_calc)
           if (current_pwr_diff > max_pwr){
             max_pwr = current_pwr_diff
           }
@@ -305,8 +305,7 @@ function processing() {
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
-      if (debug == 1){console.log(pvfc[h][3] + '-' + pvfc[h][4] + '-> ' + pvfc[h][0] + " bis " + pvfc[h][1]+'W')}
-      if ( (compareTime(pvfc[h][3], pvfc[h][4], "between")) || pvwrlimit < 100 || (cur_power_out-100) >= (pvlimit)){ 
+      if ((compareTime(pvfc[h][3], pvfc[h][4], "between")) || (cur_power_out + power_ac) >= (pvlimit-100)){ 
         bms = 2289;
         maxchrg = max_pwr;
         maxdischrg = maxdischrg_def,
