@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/05/26 */
+/*Version 2.1-beta 2020/05/27*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -55,7 +55,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     Bat_Chrg_Mode =ModBusBat + ".inputRegisters.30853_ActiveChargeMode", /*Aktives Batterieladeverfahren*/
     bms_def = 2424,
     SpntCom_def = 803,
-    lastbms = 0,
     lastSpntCom = 0,
     awattar_active = 0;
 // PV-WR Register Definition, nur bei Bedarf anpassen
@@ -185,27 +184,23 @@ function processing() {
       if (price0) {
         // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis und wenn batmindesladung erreicht ist. (Reserve)
         if (price0 < stop_discharge && batsoc <= batminlimit && ChaTm > 0 ) {
-          //bms = 2290
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit größer oder kleiner Billigstromzeitfenster
         if (batsoc >= batlimit && ChaTm > 0 && Math.ceil(ChaTm) <= lowprice.length) {     
           for (let a = 0; a < poi.length; a++) {
             if (poi[a][0] < start_charge){
-              //bms = 2289
               maxchrg = 0
               awattar_active = 1
             };
           };
         };
         if (price0 < start_charge && ChaTm > 0) {
-          //bms = 2289
           maxchrg = 0
           maxdischrg = 0
           awattar_active = 1
           // Erhaltungsladung PB
           if (batsoc <= batlimit && bat != 1785) { 
-            //bms = 2289
             maxchrg = 100
             maxdischrg = 0
             SpntCom = 802
@@ -213,7 +208,6 @@ function processing() {
           }
           for (let i = 0; i < Math.ceil(ChaTm); i++) {
             if (compareTime(poi[i][1], poi[i][2], "between")){
-              //bms = 2289
               maxchrg = maxchrg_def
               maxdischrg = 0
               SpntCom = 802
@@ -258,7 +252,6 @@ function processing() {
   if ( ChaTm > 0 && (ChaTm*2) <= pvfc.length && batsoc >= batminlimit) {
     // Bugfix zur behebung der array interval von 30min und update interval 1h
     if ((compareTime(latesttime, null, "<=", null)) && awattar_active == 0) {
-      //bms = 2289;
       maxchrg = 0;
     }
     //berechnung zur entzerrung entlang der pv kurve, oberhalb des einspeiselimits
@@ -330,7 +323,6 @@ function processing() {
 
     for (let h = 0; h < (ChaTm*2); h++) {
       if ((compareTime(pvfc[h][3], pvfc[h][4], "between")) || (cur_power_out + power_ac) >= (pvlimit-100)){ 
-        //bms = 2289;
         maxchrg = max_pwr;
       }; 
     };
@@ -338,28 +330,24 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-//if (debug == 1){console.log(bms + "!=" + bms_def + "||" + bms + "!=" + lastbms)}
-//if (bms != bms_def || bms != lastbms) {
-  if (debug == 1){console.log("Daten an WR:" + bms + ', '+ minchrg + ', '+ maxchrg + ', '+ mindischrg + ', '+ maxdischrg + ', ' + GridWSpt + ', '+ SpntCom + ', ' + PwrAtCom)}
-  setState(CmpBMSOpMod, bms, false);
-  setState(BatChaMaxW, maxchrg, false);
-  setState(BatDsChaMaxW, maxdischrg, false);
-  if (debug == 1){console.log(SpntCom + "!=" + SpntCom_def + "||" + SpntCom + "!=" + lastSpntCom)}
-  if (SpntCom != SpntCom_def || SpntCom != lastSpntCom) {
-    setState(FedInSpntCom, SpntCom, false);
-    setState(FedInPwrAtCom, PwrAtCom, false);
-  }
-  //alle SBS BatWR brauchen mehr Daten
-  if ((DevType >= 9324 && DevType <= 9326) || (DevType >= 9356 && DevType <= 9359) ){
-  //delayed ab 5. register ... WR Überlastung
-    setStateDelayed(BatChaMinW, minchrg, false, 1000);
-    setStateDelayed(BatDsChaMinW, mindischrg, false, 1000);
-  }
-  if ( DevType >= 9300 ){
-    setStateDelayed(SollAC, GridWSpt, false, 1000);
-  }
-//}
-//lastbms = bms
+if (debug == 1){console.log("Daten an WR:" + bms + ', '+ minchrg + ', '+ maxchrg + ', '+ mindischrg + ', '+ maxdischrg + ', ' + GridWSpt + ', '+ SpntCom + ', ' + PwrAtCom)}
+setState(CmpBMSOpMod, bms, false);
+setState(BatChaMaxW, maxchrg, false);
+setState(BatDsChaMaxW, maxdischrg, false);
+if (debug == 1){console.log(SpntCom + "!=" + SpntCom_def + "||" + SpntCom + "!=" + lastSpntCom)}
+if (SpntCom != SpntCom_def || SpntCom != lastSpntCom) {
+  setState(FedInSpntCom, SpntCom, false);
+  setState(FedInPwrAtCom, PwrAtCom, false);
+}
+//alle SBS BatWR brauchen mehr Daten
+if ((DevType >= 9324 && DevType <= 9326) || (DevType >= 9356 && DevType <= 9359) ){
+//delayed ab 5. register ... WR Überlastung
+  setStateDelayed(BatChaMinW, minchrg, false, 1000);
+  setStateDelayed(BatDsChaMinW, mindischrg, false, 1000);
+}
+if ( DevType >= 9300 ){
+  setStateDelayed(SollAC, GridWSpt, false, 1000);
+}
 lastSpntCom = SpntCom
 };
 
