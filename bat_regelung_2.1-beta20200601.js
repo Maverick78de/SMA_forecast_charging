@@ -2,12 +2,12 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/05/27*/
+/*Version 2.1-beta 20200601*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
 // statische Parameter
-var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
+var update = 30, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 12090, /*pv anlagenleistung Wp */
     batcap = 25344, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
@@ -19,7 +19,8 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
     ModBusPV = "modbus.0", /*ID der Modbusinstanz im ioBroker für den PV-WR, Angabe optional (leer lassen wenn nicht möglich)*/
     SMA_EM = "sma-em.0.1900208590", /*Name der SMA EnergyMeter/HM2 Instanz bei installierten SAM-EM Adapter, leer lassen wenn nicht vorhanden*/
-    Javascript = "javascript.0"; /*ID der Javascript Instanz*/
+    Javascript = "javascript.0",
+    Verbraucher = ["modbus.3.inputRegisters.30013_Pwr-L1","modbus.3.inputRegisters.30015_Pwr-L2","shelly.0.SHSW-PM#F2FDDC#1.Relay0.Power"]; /*starke Verbraucher mit Power in W berücksichtigen*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
@@ -52,11 +53,10 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
     Dev_Type = ModBusBat + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
-    Bat_Chrg_Mode =ModBusBat + ".inputRegisters.30853_ActiveChargeMode", /*Aktives Batterieladeverfahren*/
+    Bat_Chrg_Mode = ModBusBat + ".inputRegisters.30853_ActiveChargeMode", /*Aktives Batterieladeverfahren*/
     bms_def = 2424,
     SpntCom_def = 803,
-    lastSpntCom = 0,
-    awattar_active = 0;
+    lastSpntCom = 0;
 // PV-WR Register Definition, nur bei Bedarf anpassen
   var PV_Dev_Type = ModBusPV + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
       PVWR_limit = ModBusPV + ".holdingRegisters.41255_WNomPrc";
@@ -122,7 +122,9 @@ function processing() {
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def,
       PVDevType = 0,
-      pvwrlimit = 100;
+      pvwrlimit = 100,
+      awattar_active = 0,
+      pwr_verbrauch = 0;
     
   if (ModBusPV != "") {
     PVDevType = getState(PV_Dev_Type).val
@@ -130,7 +132,11 @@ function processing() {
       var pvwrlimit = Math.min(getState(PVWR_limit).val, 100)
     }
   }
-
+  for (let v = 0; v < Verbraucher.length ; v++) {
+    pwr_verbrauch = pwr_verbrauch + getState(Verbraucher[v]).val
+  }
+  if (debug == 1){console.log("Verbraucher:" + pwr_verbrauch + "W")}
+    
 //nur für Awattar
   if (awattar == 1) {
     var startTime0 = getState( Javascript + ".electricity.prices.0.startTime").val,
@@ -221,18 +227,22 @@ function processing() {
 // Ende der Awattar Sektion
 
 // Start der PV Prognose Sektion
-  var latesttime;
-  let pvfc = [];
-  let f = 0;
+  var latesttime
+  let pvfc = []
+  let f = 0
   for (let p = 0; p < 48 ; p++) { /* 48 = 24h a 30min Fenster*/
     var pvpower50 = getState(Javascript + ".electricity.pvforecast."+ p + ".power").val,
-        pvpower90 = getState(Javascript + ".electricity.pvforecast."+ p + ".power90").val;
-    if ( pvpower90 >= (pvlimit+grundlast) ){
-      var pvendtime = getState(Javascript + ".electricity.pvforecast."+ p + ".startTime").val,
-          pvstarttime = formatDate(getDateObject((getDateObject(pvendtime).getTime() - 1800000)), "SS:mm");
+        pvpower90 = getState(Javascript + ".electricity.pvforecast."+ p + ".power90").val,
+        pvendtime = getState(Javascript + ".electricity.pvforecast."+ p + ".startTime").val,
+        pvstarttime = formatDate(getDateObject((getDateObject(pvendtime).getTime() - 1800000)), "SS:mm"),
+        grundlast_calc = grundlast
+    if (compareTime(pvstarttime, pvendtime, "between")){
+      grundlast_calc = grundlast + pwr_verbrauch
+    }
+    if ( pvpower90 >= (pvlimit+grundlast_calc) ){
       if (compareTime(pvendtime, null, "<=", null)) {
         var minutes = 30
-        if (pvpower50 < (pvlimit+grundlast)){
+        if (pvpower50 < (pvlimit+grundlast_calc)){
           var minutes = Math.round((100-(((pvlimit-pvpower50)/((pvpower90-pvpower50)/40))+50))*18/60)
         }  
         pvfc[f] = [pvpower50, pvpower90, minutes, pvstarttime, pvendtime];
@@ -274,7 +284,7 @@ function processing() {
           minutes = minutescalc
         }
       }
-      get_wh = get_wh + (((pvpower/2)-((pvlimit+grundlast)/2))*(minutes/30)) // wieviele Wh Überschuss???
+      get_wh = get_wh + (((pvpower/2)-((pvlimit+grundlast_calc)/2))*(minutes/30)) // wieviele Wh Überschuss???
     }
     if (debug == 1){console.log("Überschuß " + get_wh.toFixed(0) + "Wh")}
     var pvlimit_calc = pvlimit
@@ -297,9 +307,11 @@ function processing() {
       if (PVDevType < 9300){
         current_pwr_diff = 100-pvlimit_calc+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
       }
-      max_pwr = Math.round(power_ac+current_pwr_diff)
-      if ( power_ac <= 0 && current_pwr_diff < 0 ){
-        max_pwr = 0
+      if (awattar_active == 0){
+        max_pwr = Math.round(power_ac+current_pwr_diff)
+        if ( power_ac <= 0 && current_pwr_diff < 0 ){
+          max_pwr = 0
+        }
       }
       //aus der begrenzung holen...
       //alte WR Methode
