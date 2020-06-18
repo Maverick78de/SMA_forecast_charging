@@ -2,13 +2,13 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 20200601*/
+/*Version 2.1-beta 2020/06/17*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
 // statische Parameter
-var update = 30, /*Update interval in sek, 15 ist ein guter Wert*/
-    pvpeak = 12090, /*pv anlagenleistung Wp */
+var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
+    pvpeak = 21610, /*pv anlagenleistung Wp */
     batcap = 25344, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
@@ -24,9 +24,9 @@ var update = 30, /*Update interval in sek, 15 ist ein guter Wert*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
-    gridprice = 16.065, /*(netto bezugspreis)*/
+    gridprice = 15.77, /*(netto bezugspreis)*/
     taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
-    pvprice = 12.31,  /*pv preis*/
+    pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = 35, /*System gesamtverlust in %, nur für Awattar Preisberechnung*/
@@ -135,7 +135,7 @@ function processing() {
   for (let v = 0; v < Verbraucher.length ; v++) {
     pwr_verbrauch = pwr_verbrauch + getState(Verbraucher[v]).val
   }
-  if (debug == 1){console.log("Verbraucher:" + pwr_verbrauch + "W")}
+  if (debug == 1){console.log("Verbraucher:" + pwr_verbrauch.toFixed(0) + "W")}
     
 //nur für Awattar
   if (awattar == 1) {
@@ -189,11 +189,11 @@ function processing() {
     if (compareTime(startTime0, endTime0, "between"))  {
       if (price0) {
         // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis und wenn batmindesladung erreicht ist. (Reserve)
-        if (price0 < stop_discharge && batsoc <= batminlimit && ChaTm > 0 ) {
+        if (price0 <= stop_discharge) {
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit größer oder kleiner Billigstromzeitfenster
-        if (batsoc >= batlimit && ChaTm > 0 && Math.ceil(ChaTm) <= lowprice.length) {     
+        if (ChaTm > 0 && Math.ceil(ChaTm) <= lowprice.length) {     
           for (let a = 0; a < poi.length; a++) {
             if (poi[a][0] < start_charge){
               maxchrg = 0
@@ -320,6 +320,10 @@ function processing() {
           max_pwr = Math.round(pvfc[0][1]-pvlimit_calc)
           if (current_pwr_diff > max_pwr){
             max_pwr = current_pwr_diff
+            if (awattar_active == 1){
+              SpntCom = 803
+              PwrAtCom = PwrAtCom_def
+            }
           }
         }
       }
@@ -327,6 +331,10 @@ function processing() {
       if (PVDevType >= 9300){
         var begr_fakt = (100-pvwrlimit)/100;         
         max_pwr = max_pwr + (pv_ac_pwr*begr_fakt)
+        if (awattar_active == 1){
+          SpntCom = 803
+          PwrAtCom = PwrAtCom_def
+        }
       }
     }
 
