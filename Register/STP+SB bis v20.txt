@@ -1,7 +1,0 @@
-Eingangsregister:
-
-address	name	description	unit	type	len	factor	offset	role	room	
-30775	PVLeistung		W	int32be	2	1	0	value		
-30535	PVTagesertrag		kWh	uint32be	2	0.001	0	value		
-30529	PVGesamtertrag		kWh	uint32be	2	0.001	0	value		
-30053	DevTypeId	DeviceTyp		uint32be	2	1	0	value		
