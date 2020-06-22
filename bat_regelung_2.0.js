@@ -17,7 +17,7 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     bat_wr_pwr = 0, /* Ladeleistung der Batterie in W, 0=automatik (wird ausgelesen)*/
     pv_ac_pwr = 11500, /*Leistung der PV Wechselrichter (Max AC Power)*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
-    ModBusPV = "modbus.0", /*ID der Modbusinstanz im ioBroker für den PV-WR, Angabe optional (leer lassen wenn nicht möglich)*/
+    ModBusPV = "modbus.0", /*ID der Modbusinstanz im ioBroker für den PV-WR die Register 41255 unterstützen, Angabe optional (leer lassen wenn nicht möglich)*/
     SMA_EM = "sma-em.0.1900208590", /*Name der SMA EnergyMeter/HM2 Instanz bei installierten SAM-EM Adapter, leer lassen wenn nicht vorhanden*/
     Javascript = "javascript.0"; /*ID der Javascript Instanz*/
 
