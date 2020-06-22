@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/06/17*/
+/*Version 2.1-beta 2020/06/22*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -15,9 +15,7 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     grundlast = 200, /*Grundlast in Watt falls bekannt*/
     wr_eff = 0.958, /* max BatWR Effizienz laut Datenblatt 0.95=95%, 1.0=100% */
     bat_wr_pwr = 0, /* Ladeleistung der Batterie in W, 0=automatik (wird ausgelesen)*/
-    pv_ac_pwr = 11500, /*Leistung der PV Wechselrichter (Max AC Power)*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
-    ModBusPV = "modbus.0", /*ID der Modbusinstanz im ioBroker für den PV-WR, Angabe optional (leer lassen wenn nicht möglich)*/
     SMA_EM = "sma-em.0.1900208590", /*Name der SMA EnergyMeter/HM2 Instanz bei installierten SAM-EM Adapter, leer lassen wenn nicht vorhanden*/
     Javascript = "javascript.0",
     Verbraucher = ["modbus.3.inputRegisters.30013_Pwr-L1","modbus.3.inputRegisters.30015_Pwr-L2","shelly.0.SHSW-PM#F2FDDC#1.Relay0.Power"]; /*starke Verbraucher mit Power in W berücksichtigen*/
@@ -57,9 +55,6 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     bms_def = 2424,
     SpntCom_def = 803,
     lastSpntCom = 0;
-// PV-WR Register Definition, nur bei Bedarf anpassen
-  var PV_Dev_Type = ModBusPV + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
-      PVWR_limit = ModBusPV + ".holdingRegisters.41255_WNomPrc";
 // Awattar + Vis
 if (awattar == 1 && vis == 1){
   createState(Javascript + ".electricity.prices.batprice", 0, {
@@ -121,17 +116,9 @@ function processing() {
       GridWSpt = 0,
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def,
-      PVDevType = 0,
-      pvwrlimit = 100,
       awattar_active = 0,
       pwr_verbrauch = 0;
     
-  if (ModBusPV != "") {
-    PVDevType = getState(PV_Dev_Type).val
-    if (PVDevType >= 9300){
-      var pvwrlimit = Math.min(getState(PVWR_limit).val, 100)
-    }
-  }
   for (let v = 0; v < Verbraucher.length ; v++) {
     pwr_verbrauch = pwr_verbrauch + getState(Verbraucher[v]).val
   }
@@ -303,10 +290,8 @@ function processing() {
     //Scenario 5
     if (get_wh >= ChaEnrg && ChaEnrg > 0){
       ChaTm = pvfc.length/2      
-      var current_pwr_diff = -pvlimit_calc+cur_power_out
-      if (PVDevType < 9300){
-        current_pwr_diff = 100-pvlimit_calc+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
-      }
+      var current_pwr_diff = 100-pvlimit_calc+cur_power_out //bleibe 100W unter dem Limit (PV-WR Trigger)
+
       if (awattar_active == 0){
         max_pwr = Math.round(power_ac+current_pwr_diff)
         if ( power_ac <= 0 && current_pwr_diff < 0 ){
@@ -314,26 +299,14 @@ function processing() {
         }
       }
       //aus der begrenzung holen...
-      //alte WR Methode
-      if (PVDevType < 9300){
-        if (power_ac <= 10 && current_pwr_diff > 0 ){ 
-          max_pwr = Math.round(pvfc[0][1]-pvlimit_calc)
-          if (current_pwr_diff > max_pwr){
-            max_pwr = current_pwr_diff
-            if (awattar_active == 1){
-              SpntCom = 803
-              PwrAtCom = PwrAtCom_def
-            }
+      if (power_ac <= 10 && current_pwr_diff > 0 ){ 
+        max_pwr = Math.round(pvfc[0][1]-pvlimit_calc)
+        if (current_pwr_diff > max_pwr){
+          max_pwr = current_pwr_diff
+          if (awattar_active == 1){
+            SpntCom = 803
+            PwrAtCom = PwrAtCom_def
           }
-        }
-      }
-      //neue WR Methode
-      if (PVDevType >= 9300){
-        var begr_fakt = (100-pvwrlimit)/100;         
-        max_pwr = max_pwr + (pv_ac_pwr*begr_fakt)
-        if (awattar_active == 1){
-          SpntCom = 803
-          PwrAtCom = PwrAtCom_def
         }
       }
     }
