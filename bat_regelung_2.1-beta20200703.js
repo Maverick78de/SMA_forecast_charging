@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/06/22*/
+/*Version 2.1-beta 2020/07/03*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -89,10 +89,6 @@ function processing() {
   if (DevType >= 9356 && DevType <= 9362) {
     var batlimit = getState(SelfCsmpBatChaSttMin).val
   }
-  // nur SIx-11
-  if (DevType < 9300) {
-    var batchrgmode = getState(Bat_Chrg_Mode).val
-  }
   var batsoc = getState(BAT_SoC).val,
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
@@ -106,6 +102,7 @@ function processing() {
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit),
+      pwr_verbrauch = 0,
       /* Default Werte setzen*/
       RmgChaTm = 0,
       bms = bms_def, 
@@ -116,9 +113,7 @@ function processing() {
       GridWSpt = 0,
       SpntCom = SpntCom_def,
       PwrAtCom = PwrAtCom_def,
-      awattar_active = 0,
-      pwr_verbrauch = 0;
-    
+      awattar_active = 0;
   for (let v = 0; v < Verbraucher.length ; v++) {
     pwr_verbrauch = pwr_verbrauch + getState(Verbraucher[v]).val
   }
@@ -133,6 +128,9 @@ function processing() {
 //Parametrierung Speicher
   if (bat != 1785) {
     RmgChaTm = getState(RemainChrgTime).val/3600
+    if (DevType < 9300) {
+      var batchrgmode = getState(Bat_Chrg_Mode).val
+    }
   }
   // Lademenge
   var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*(1+1-wr_eff))
@@ -224,7 +222,7 @@ function processing() {
         pvstarttime = formatDate(getDateObject((getDateObject(pvendtime).getTime() - 1800000)), "SS:mm"),
         grundlast_calc = grundlast
     if (compareTime(pvstarttime, pvendtime, "between")){
-      grundlast_calc = grundlast + pwr_verbrauch
+      grundlast_calc = pwr_verbrauch
     }
     if ( pvpower90 >= (pvlimit+grundlast_calc) ){
       if (compareTime(pvendtime, null, "<=", null)) {
@@ -274,7 +272,8 @@ function processing() {
       get_wh = get_wh + (((pvpower/2)-((pvlimit+grundlast_calc)/2))*(minutes/30)) // wieviele Wh Überschuss???
     }
     if (debug == 1){console.log("Überschuß " + get_wh.toFixed(0) + "Wh")}
-    var pvlimit_calc = pvlimit
+    var pvlimit_calc = pvlimit,
+        min_pwr = 0
     //Scenario 4
     if (ChaEnrg > get_wh && ChaEnrg > 0 && ChaTm > 0){
       if ((ChaTm*2) <= pvfc.length){
@@ -282,9 +281,10 @@ function processing() {
       }
       if (awattar_active == 0){
         pvlimit_calc = Math.max((Math.round(pvlimit - ((ChaEnrg - get_wh)/ChaTm))),0) //virtuelles reduzieren des pvlimits
+        min_pwr = Math.max(Math.round((ChaEnrg - get_wh)/ChaTm),0)
       }
       get_wh = ChaEnrg // sprungpunkt in Scenario 5 
-      if (debug == 1){console.log("Verschiebung Einspeiselimit auf " + pvlimit_calc + "W")}
+      if (debug == 1){console.log("Verschiebung Einspeiselimit auf " + pvlimit_calc + "W" + "mit mndestens" + min_pwr + "W")}
     }
     
     //Scenario 5
@@ -311,7 +311,7 @@ function processing() {
       }
     }
 
-    max_pwr = Math.min(Math.max(max_pwr, 0), maxchrg_def) //abfangen negativer werte, limitiere auf 0
+    max_pwr = Math.min(Math.max(max_pwr, min_pwr), maxchrg_def) //abfangen negativer werte, limitiere auf min_pwr
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
