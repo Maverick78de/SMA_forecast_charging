@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/07/03*/
+/*Version 2.1-beta 2020/07/21*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -89,6 +89,10 @@ function processing() {
   if (DevType >= 9356 && DevType <= 9362) {
     var batlimit = getState(SelfCsmpBatChaSttMin).val
   }
+  if (batlimit < 0 || batlimit > 100){
+    console.log("Warnung! Ausgelesenes Entladelimit unplausibel! Setze auf 0%")
+    batlimit = 0
+  }
   var batsoc = getState(BAT_SoC).val,
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
@@ -165,28 +169,24 @@ function processing() {
     });
   
     let lowprice = []; //wieviele Ladestunden unter Startcharge Preis
-    for (let x = 0; x < Math.ceil(ChaTm); x++) {
+    for (let x = 0; x < poi.length; x++) {
       if (poi[x][0] < start_charge){
-        lowprice[x] = [poi[x][0]];
+        lowprice[x] = poi[x];
       }
     };
-
+    
     if (compareTime(startTime0, endTime0, "between"))  {
       if (price0) {
-        // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis und wenn batmindesladung erreicht ist. (Reserve)
-        if (price0 <= stop_discharge) {
+        // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis ist.
+        if (price0 <= stop_discharge && ChaTm >= lowprice.length ) {
           maxdischrg = 0
         }
-        //ladung stoppen wenn Restladezeit größer oder kleiner Billigstromzeitfenster
-        if (ChaTm > 0 && Math.ceil(ChaTm) <= lowprice.length) {     
-          for (let a = 0; a < poi.length; a++) {
-            if (poi[a][0] < start_charge){
-              maxchrg = 0
-              awattar_active = 1
-            };
-          };
+        //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
+        if (lowprice.length > 0 && ChaTm <= lowprice.length) {
+          maxchrg = 0
+          awattar_active = 1
         };
-        if (price0 < start_charge && ChaTm > 0) {
+        if (price0 < start_charge) {
           maxchrg = 0
           maxdischrg = 0
           awattar_active = 1
@@ -197,8 +197,9 @@ function processing() {
             SpntCom = 802
             PwrAtCom = -100
           }
-          for (let i = 0; i < Math.ceil(ChaTm); i++) {
-            if (compareTime(poi[i][1], poi[i][2], "between")){
+
+          for (let i = 0; i <= Math.ceil(ChaTm); i++) {
+            if (compareTime(lowprice[i][1], lowprice[i][2], "between")){
               maxchrg = maxchrg_def
               maxdischrg = 0
               SpntCom = 802
@@ -213,8 +214,8 @@ function processing() {
 
 // Start der PV Prognose Sektion
   var latesttime
-  let pvfc = []
-  let f = 0
+  var pvfc = []
+  var f = 0
   for (let p = 0; p < 48 ; p++) { /* 48 = 24h a 30min Fenster*/
     var pvpower50 = getState(Javascript + ".electricity.pvforecast."+ p + ".power").val,
         pvpower90 = getState(Javascript + ".electricity.pvforecast."+ p + ".power90").val,
