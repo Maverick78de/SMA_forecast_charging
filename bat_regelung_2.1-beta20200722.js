@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/07/21*/
+/*Version 2.1-beta 2020/07/22*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -12,18 +12,19 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     batcap = 25344, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
-    grundlast = 200, /*Grundlast in Watt falls bekannt*/
+    bat_ziel = 85, /*gewünschtes Ladeziel der Regelung, bei Blei ca 85% da dann die Ladeleistung stark abfällt und keine vernünftige Regelung mehr zulässt. Bei LI sollte es 100 sein*/
+    grundlast = 0, /*Grundlast in Watt falls bekannt*/
     wr_eff = 0.958, /* max BatWR Effizienz laut Datenblatt 0.95=95%, 1.0=100% */
     bat_wr_pwr = 0, /* Ladeleistung der Batterie in W, 0=automatik (wird ausgelesen)*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
     SMA_EM = "sma-em.0.1900208590", /*Name der SMA EnergyMeter/HM2 Instanz bei installierten SAM-EM Adapter, leer lassen wenn nicht vorhanden*/
     Javascript = "javascript.0",
-    Verbraucher = ["modbus.3.inputRegisters.30013_Pwr-L1","modbus.3.inputRegisters.30015_Pwr-L2","shelly.0.SHSW-PM#F2FDDC#1.Relay0.Power"]; /*starke Verbraucher mit Power in W berücksichtigen*/
+    Verbraucher = ["javascript.0.electricity.power.hauscsmp"]; /*starke Verbraucher mit Power in W berücksichtigen, hier kann der Realverbrauch in einem externen Script berechnet werden*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
-    gridprice = 15.77, /*(netto bezugspreis)*/
-    taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
+    gridprice = 15.821, /*(netto bezugspreis)*/
+    taxprice = gridprice * 0.16, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
@@ -137,15 +138,17 @@ function processing() {
     }
   }
   // Lademenge
-  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*(1+1-wr_eff))
+  var ChaEnrg_full = Math.ceil((batcap * ( - batsoc) / 100)*(1+1-wr_eff))
   var ChaEnrg = ChaEnrg_full
-  if (bat != 1785 && RmgChaTm != 0) /* 1785 = Li-Ion*/{
-    ChaEnrg = Math.max(Math.ceil((batcap * (85 - batsoc) / 100)*(1+1-wr_eff)), 0);
-  }
+  ChaEnrg = Math.max(Math.ceil((batcap * (bat_ziel - batsoc) / 100)*(1+1-wr_eff)), 0);
   var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
 
   if ( bat != 1785 && ChaTm <= 0 ) {
     ChaTm = RmgChaTm
+    ChaEnrg = ChaEnrg_full
+  }
+  if ( bat == 1785 && ChaTm <= 0 ) {
+    ChaTm = ChaEnrg_full/batwr_pwr
     ChaEnrg = ChaEnrg_full
   }
   // PB ... Regelung nur bei Schnellladung
