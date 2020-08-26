@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1-beta 2020/07/26*/
+/*Version 2.1-beta 2020/08/26*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -57,7 +57,7 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     SpntCom_def = 803,
     lastSpntCom = 0;
 // Awattar + Vis
-if (awattar == 1 && vis == 1){
+if (awattar == 1){
   createState(Javascript + ".electricity.prices.batprice", 0, {
                     read: true,
                     write: true,
