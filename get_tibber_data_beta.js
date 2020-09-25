@@ -1,5 +1,4 @@
 const url = 'https://api.tibber.com/v1-beta/gql'
-var addprice = 18.52 /* Regionaler aufpreis*/
 const token = "Bearer d1007ead2dc84a2b82f0de19451c5fb22112f7ae11d19bf2bedb224a003ff74a"
 
 function requestData() {
@@ -66,7 +65,7 @@ function requestData() {
                 let endTime = new Date(end).toLocaleTimeString('de-DE', options);
  
                 let mwhprice = array[i].total;
-                let price = Number(mwhprice) + addprice;
+                let price = Number(mwhprice);
                 //console.log(startTime + ',' + startDate + ',' + startTime + ',' + endTime + ',' + price )
                 
                 setState(stateBaseName + "startTime", startTime);
@@ -75,14 +74,14 @@ function requestData() {
                 setState(stateBaseName + "price", price);
             };
             array.sort(function (a, b) {
-                return a.marketprice - b.marketprice
+                return a.total - b.total
             });
             var batprice = getState("javascript.0.electricity.prices.batprice").val;
-            var minprice = array[0].marketprice + addprice;
+            var minprice = array[0].total;
             if ( minprice > batprice ) {
                 minprice = batprice;
             }
-            var maxprice = array[array.length - 1].marketprice + addprice;
+            var maxprice = array[array.length - 1].total;
             var diffprice = maxprice - minprice;
             var redprice = maxprice - (diffprice/2);
             if ( redprice < batprice ) {
