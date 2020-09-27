@@ -56,12 +56,12 @@ function requestData() {
                     def: 0
                 });
  
-                let start = new Date(array[i].startsAt);
+                let start = new Date(Date.parse(array[i].startsAt));
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
                 let startDate = start.toLocaleDateString('de-DE');
                  
-                let end = new Date(array[i].startsAt).getTime()+3600000
+                let end = new Date(Date.parse(array[i].startsAt)).getTime()+3600000
                 let endTime = new Date(end).toLocaleTimeString('de-DE', options);
  
                 let mwhprice = array[i].total;
