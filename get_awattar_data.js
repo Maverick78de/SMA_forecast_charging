@@ -6,6 +6,7 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 var addprice = 18.52;
 const url = "https://api.awattar.de/v1/marketdata"; 
 
+
 function requestData() {
  
     const options = {
@@ -49,14 +50,6 @@ function requestData() {
                     def: false
                 });
  
-/*                createState(stateBaseName + "endDate", "", {
-                    read: true,
-                    write: true,
-                    name: "Gultigkeitsende (Datum)",
-                    type: "string",
-                    def: false
-                });
-*/ 
                 createState(stateBaseName + "price", 0, {
                     read: true,
                     write: true,
@@ -65,14 +58,6 @@ function requestData() {
                     def: 0
                 });
  
-/*                createState(stateBaseName + "unit", "", {
-                    read: true,
-                    write: true,
-                    name: "Einheit",
-                    type: "string",
-                    def: false
-                });
-*/ 
                 let start = new Date(array[i].start_timestamp);
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
@@ -80,19 +65,14 @@ function requestData() {
                  
                 let end = new Date(array[i].end_timestamp);
                 let endTime = end.toLocaleTimeString('de-DE', options);
-//                let endDate = end.toLocaleDateString('de-DE');
  
                 let mwhprice = array[i].marketprice;
                 let price = ( Number(mwhprice) * 1.19 / 10 ) + addprice;
-//                mwhunit = array[i].unit;
-//                let kwhunit = 'Eur/kWh';
                 
                 setState(stateBaseName + "startTime", startTime);
                 setState(stateBaseName + "startDate", startDate);
                 setState(stateBaseName + "endTime", endTime);
-//                setState(stateBaseName + "endDate", endDate);
                 setState(stateBaseName + "price", price);
-//                setState(stateBaseName + "unit", kwhunit);
             };
             array.sort(function (a, b) {
                 return a.marketprice - b.marketprice
@@ -113,6 +93,6 @@ function requestData() {
     });
 }
 requestData();
-schedule("0,30 * * * *", function () {
+schedule("0 * * * *", function () {
     requestData();
 });
