@@ -23,8 +23,8 @@ function requestData() {
             let array = JSON.parse(body).forecasts;
             var list = [];
             for(let i = 0; i < array.length; i++) {
-                var starttime = Date.parse(array[i].period_end);
-                var time = new Date(starttime);
+                var endtime = Date.parse(array[i].period_end);
+                var time = new Date(endtime-1800000);
                 var readpwr = array[i].pv_estimate;
                 var readpwr90 = array[i].pv_estimate90;
                 list[i] = {};
@@ -50,8 +50,15 @@ function requestData() {
 function create_datapoints(){
     for(let a = 0; a < (hours*2); a++) {
         let stateBaseName = "electricity.pvforecast." + a + ".";
-                
+
         createState(stateBaseName + "startTime", "", {
+                   read: true,
+                    write: true,
+                    name: "Uhrzeit",
+                    type: "string",
+                    def: false
+        });     
+        createState(stateBaseName + "endTime", "", {
                    read: true,
                     write: true,
                     name: "Uhrzeit",
