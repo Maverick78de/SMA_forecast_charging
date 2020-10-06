@@ -34,12 +34,15 @@ function requestData() {
             };
                     
             for(let a = 0; a < (hours*2); a++) {
-		let stateBaseName = "electricity.pvforecast." + a + "."; 
+                let stateBaseName = "electricity.pvforecast." + a + ".";
                 let start = new Date((list[a].time)*1000);
+                let end = new Date(((list[a].time)*1000)+1800000)
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
+                let endTime = end.toLocaleTimeString('de-DE', options);
 
                 setState(stateBaseName + "startTime", startTime);
+                setState(stateBaseName + "endTime", endTime);
                 setState(stateBaseName + "power", list[a].watt);
                 setState(stateBaseName + "power90", list[a].watt90);
             }
