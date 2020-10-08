@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.1*/
+/*Version 2.1.1*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -222,8 +222,8 @@ function processing() {
   for (let p = 0; p < 48 ; p++) { /* 48 = 24h a 30min Fenster*/
     var pvpower50 = getState(Javascript + ".electricity.pvforecast."+ p + ".power").val,
         pvpower90 = getState(Javascript + ".electricity.pvforecast."+ p + ".power90").val,
-        pvendtime = getState(Javascript + ".electricity.pvforecast."+ p + ".startTime").val,
-        pvstarttime = formatDate(getDateObject((getDateObject(pvendtime).getTime() - 1800000)), "SS:mm"),
+        pvendtime = getState(Javascript + ".electricity.pvforecast."+ p + ".endTime").val,
+        pvstarttime = getState(Javascript + ".electricity.pvforecast."+ p + ".startTime").val,
         grundlast_calc = grundlast
     if (compareTime(pvstarttime, pvendtime, "between")){
       grundlast_calc = pwr_verbrauch
