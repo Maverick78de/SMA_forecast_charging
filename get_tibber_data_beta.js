@@ -19,7 +19,7 @@ function requestData() {
  
         if(response.statusCode == 200) {
             let array = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.today
-            array.concat(JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow)
+            array.push(JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow)
             let jetzt = new Date();
             console.log(array)
             for(let i = jetzt.getHours(); i < array.length; i++) {
