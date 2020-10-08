@@ -6,7 +6,7 @@ function requestData() {
     const options = {
         uri: url,
         method: 'POST',
-        body: '{"query": "{viewer {homes {currentSubscription {priceInfo {range(resolution: HOURLY, first:48 ) { nodes {total startsAt }}}}}}}" }',
+        body: '{"query": "{ viewer { homes { currentSubscription{ priceInfo{ today{ total startsAt } tomorrow{ total startsAt } } } } } }" }',
         headers: {
             'Authorization': token,
         'Content-Type': 'application/json'
@@ -18,8 +18,10 @@ function requestData() {
         if(error) return console.log(error);
  
         if(response.statusCode == 200) {
-            let array = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.range.nodes
+            let array = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.today
+            array.push = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow
             let jetzt = new Date();
+            console.log(array)
             for(let i = jetzt.getHours(); i < array.length; i++) {
 
                 let stateBaseName = "electricity.prices." + i + ".";
@@ -72,10 +74,12 @@ function requestData() {
                 setState(stateBaseName + "startDate", startDate);
                 setState(stateBaseName + "endTime", endTime);
                 setState(stateBaseName + "price", price);
+                
             };
             array.sort(function (a, b) {
                 return a.total - b.total
             });
+            
             var batprice = getState("javascript.0.electricity.prices.batprice").val;
             var minprice = array[0].total;
             if ( minprice > batprice ) {
@@ -83,11 +87,12 @@ function requestData() {
             }
             var maxprice = array[array.length - 1].total;
             var diffprice = maxprice - minprice;
-            var redprice = maxprice - (diffprice/2);
+            var redprice = minprice + (diffprice/3);
             if ( redprice < batprice ) {
                 redprice = batprice;
             }
-            setState("javascript.0.electricity.prices.redprice", redprice); 
+            setState("javascript.0.electricity.prices.redprice", redprice);
+            
         };
     });
 }
