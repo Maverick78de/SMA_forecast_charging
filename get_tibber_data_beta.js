@@ -76,23 +76,6 @@ function requestData() {
                 setState(stateBaseName + "price", price);
                 
             };
-            array.sort(function (a, b) {
-                return a.total - b.total
-            });
-            
-            var batprice = getState("javascript.0.electricity.prices.batprice").val;
-            var minprice = array[0].total;
-            if ( minprice > batprice ) {
-                minprice = batprice;
-            }
-            var maxprice = array[array.length - 1].total;
-            var diffprice = maxprice - minprice;
-            var redprice = minprice + (diffprice/3);
-            if ( redprice < batprice ) {
-                redprice = batprice;
-            }
-            setState("javascript.0.electricity.prices.redprice", redprice);
-            
         };
     });
 }
