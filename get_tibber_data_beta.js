@@ -19,7 +19,7 @@ function requestData() {
  
         if(response.statusCode == 200) {
             let array = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.today
-                array.push(JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow)
+                array = array.concat(JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow)
             let jetzt = new Date();
             
             for(let i = jetzt.getHours(); i < array.length; i++) {
@@ -58,15 +58,15 @@ function requestData() {
                     def: 0
                 });
  
-                let start = new Date(Date.parse(array[a].startsAt));
+                let start = new Date(Date.parse(array[i].startsAt));
                 var options = { hour12: false, hour: '2-digit', minute:'2-digit'};
                 let startTime = start.toLocaleTimeString('de-DE', options);
                 let startDate = start.toLocaleDateString('de-DE');
                  
-                let end = new Date(Date.parse(array[a].startsAt)).getTime()+3600000
+                let end = new Date(Date.parse(array[i].startsAt)).getTime()+3600000
                 let endTime = new Date(end).toLocaleTimeString('de-DE', options);
  
-                let mwhprice = array[a].total;
+                let mwhprice = array[i].total;
                 let price = Number(mwhprice);
                 //console.log(startTime + ',' + startDate + ',' + startTime + ',' + endTime + ',' + price )
                 
