@@ -1,3 +1,9 @@
+/*
+MIT License - see LICENSE.md 
+Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
+*/
+
+// Get Tibber Data  (Awattar alternative)
 const url = 'https://api.tibber.com/v1-beta/gql'
 const token = "Bearer d1007ead2dc84a2b82f0de19451c5fb22112f7ae11d19bf2bedb224a003ff74a"
 
