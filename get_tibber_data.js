@@ -79,7 +79,7 @@ function requestData() {
                 setState(stateBaseName + "startTime", startTime);
                 setState(stateBaseName + "startDate", startDate);
                 setState(stateBaseName + "endTime", endTime);
-                setState(stateBaseName + "price", price);
+                setState(stateBaseName + "price", price*100);
                 
             };
         };
