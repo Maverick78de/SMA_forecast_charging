@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/16*/
+/*Version 2.2 beta 2020/10/19*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -52,10 +52,12 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     BatType = ModBusBat + ".holdingRegisters.40035_BatType", /*Abfrage Batterietyp*/
     PowerAC = ModBusBat + ".inputRegisters.30775_PowerAC", /*Power AC*/
     Dev_Type = ModBusBat + ".inputRegisters.30053_DevTypeId", /*Typnummer*/
-    Bat_Chrg_Mode = ModBusBat + ".inputRegisters.30853_ActiveChargeMode", /*Aktives Batterieladeverfahren*/
+    Bat_Chrg_Mode = ModBusBat + ".inputRegisters.30853_ActiveChargeMode", /*Aktives Batterieladeverfahren, nur für SI+Blei Akku nötig*/
     bms_def = 2424,
     SpntCom_def = 803,
-    lastSpntCom = 0;
+    lastSpntCom = 0,
+    lastmaxchrg = 0,
+    lastmaxdischrg = 0
 // Awattar + Vis
 if (awattar == 1){
   createState(Javascript + ".electricity.prices.batprice", 0, {
@@ -71,7 +73,7 @@ if (awattar == 1){
                     name: "PV_Preis",
                     type: "number",
                     def: 0
-                });                
+                });
   setState(Javascript + ".electricity.prices.batprice",stop_discharge, true); /*dient nur für Visualisierung*/
   setState(Javascript + ".electricity.prices.PVprice", start_charge, true); /*dient nur für Visualisierung*/
 };
@@ -99,7 +101,7 @@ function processing() {
       batminlimit = batlimit+bat_grenze,
       batwr_pwr = bat_wr_pwr
       if (bat_wr_pwr == 0){
-        batwr_pwr = getState(WMaxCha).val;        
+        batwr_pwr = getState(WMaxCha).val
       }
   var maxchrg_def = batwr_pwr,
       maxdischrg_def = getState(WMaxDsch).val,
@@ -166,18 +168,17 @@ function processing() {
       for (let t = 0; t < 12 ; t++) {
         poi[t] = [getState(Javascript + ".electricity.prices."+ t + ".price").val, getState(Javascript + ".electricity.prices."+ t + ".startTime").val, getState(Javascript + ".electricity.prices."+ t + ".endTime").val];
     };
-  
     poi.sort(function(a, b, c){
       return a[0] - b[0];
     });
-  
+
     let lowprice = []; //wieviele Ladestunden unter Startcharge Preis
     for (let x = 0; x < poi.length; x++) {
       if (poi[x][0] < start_charge){
         lowprice[x] = poi[x];
       }
     };
-    
+
     if (compareTime(startTime0, endTime0, "between"))  {
       if (price0) {
         // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis ist.
@@ -315,7 +316,7 @@ function processing() {
         min_pwr = Math.max(Math.round((ChaEnrg - get_wh)/ChaTm),0)
       }
       get_wh = ChaEnrg // sprungpunkt in Scenario 5 
-      if (debug == 1){console.log("Verschiebung Einspeiselimit auf " + pvlimit_calc + "W" + "mit mndestens" + min_pwr + "W")}
+      if (debug == 1){console.log("Verschiebe Einspeiselimit auf " + pvlimit_calc + "W" + " mit mindestens " + min_pwr + "W")}
     }
     
     //Scenario 5
@@ -354,27 +355,34 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-if (debug == 1){console.log("Daten an WR:" + bms + ', '+ minchrg + ', '+ maxchrg + ', '+ mindischrg + ', '+ maxdischrg + ', ' + GridWSpt + ', '+ SpntCom + ', ' + PwrAtCom)}
-setState(CmpBMSOpMod, bms, false);
-setState(BatChaMaxW, maxchrg, false);
-setState(BatDsChaMaxW, maxdischrg, false);
-if (debug == 1){console.log(SpntCom + "!=" + SpntCom_def + "||" + SpntCom + "!=" + lastSpntCom)}
+if (debug == 1){console.log(maxchrg + "!=" + maxchrg_def + "||" + maxchrg + "!=" + lastmaxchrg + "||" + maxdischrg + "!=" + maxdischrg_def + "||" + maxdischrg + "!=" + lastmaxdischrg)}
+if (maxchrg != maxchrg_def || maxchrg != lastmaxchrg || maxdischrg != maxdischrg_def || maxdischrg != lastmaxdischrg) {
+  if (debug == 1){console.log("Daten an WR:" + maxchrg + ', '+ maxdischrg)}
+  setState(CmpBMSOpMod, bms, false);
+  setState(BatChaMaxW, maxchrg, false);
+  setState(BatDsChaMaxW, maxdischrg, false);
+  //alle SBS BatWR brauchen mehr Daten
+  if ((DevType >= 9324 && DevType <= 9326) || (DevType >= 9356 && DevType <= 9359) ){
+    //delayed ab 5. register ... WR Überlastung
+    setStateDelayed(BatChaMinW, minchrg, false, 1000);
+    setStateDelayed(BatDsChaMinW, mindischrg, false, 1000);
+  }
+  if ( DevType >= 9300 ){
+    setStateDelayed(SollAC, GridWSpt, false, 1000);
+  }
+}
+lastmaxchrg = maxchrg
+lastmaxdischrg = maxdischrg
+
+  if (debug == 1){console.log(SpntCom + "!=" + SpntCom_def + "||" + SpntCom + "!=" + lastSpntCom)}
 if (SpntCom != SpntCom_def || SpntCom != lastSpntCom) {
+  if (debug == 1){console.log("Daten an WR:" + SpntCom + ', ' + PwrAtCom)}
   setState(FedInSpntCom, SpntCom, false);
   setState(FedInPwrAtCom, PwrAtCom, false);
 }
-//alle SBS BatWR brauchen mehr Daten
-if ((DevType >= 9324 && DevType <= 9326) || (DevType >= 9356 && DevType <= 9359) ){
-//delayed ab 5. register ... WR Überlastung
-  setStateDelayed(BatChaMinW, minchrg, false, 1000);
-  setStateDelayed(BatDsChaMinW, mindischrg, false, 1000);
-}
-if ( DevType >= 9300 ){
-  setStateDelayed(SollAC, GridWSpt, false, 1000);
-}
 lastSpntCom = SpntCom
-};
 
+}
 var Interval = setInterval(function () {
   processing(); /*start processing in interval*/
 }, (update*1000));
