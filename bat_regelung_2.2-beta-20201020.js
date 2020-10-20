@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/19*/
+/*Version 2.2 beta 2020/10/20*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -179,21 +179,41 @@ function processing() {
       }
     };
 
-    if (compareTime(startTime0, endTime0, "between"))  {
+    if (compareTime(startTime0, endTime0, "between")){
       if (price0) {
         // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis ist.
         if (price0 <= stop_discharge && ChaTm >= lowprice.length ) {
           maxdischrg = 0
         }
-        if (compareTime({astro: 'sunsetStart', offset: -60}, {astro: 'sunriseEnd', offset: 60}, "between")){
+        var sunup, sundown
+        for (let sd = 0; sd < 48 ; sd++) {
+          if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast) {
+            sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
+            for (let su = sd; su < 48 ; su++) {
+              if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast) {
+                sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
+                su = 48
+              }
+            }  
+            sd = 48
+            if ( sunup === "" ){sunup = '09:00'} //nur falls die Sonne nicht mehr aufgeht ;) 
+          }
+        }
+        if (debug == 1){console.log('Nachtfenster:' + sundown + '-' + sunup)}
+        //if (compareTime({astro: 'sunsetStart', offset: -60}, {astro: 'sunriseEnd', offset: 60}, "between")){
           // calc number of bat runtime hrs left
           var batlefthrs = (batcap*(batsoc-batlimit))/100/(grundlast*(1+1-wr_eff))
           // wieviel Stunden bis Sonnenaufgang
-          var today = new Date(),
-              now = new Date(),
-              next = today.setHours(today.getHours() + 12),
-              sunriseend = new Date(getAstroDate("sunriseEnd", next )),
-              hrstosun = (getDateObject(sunriseend).getTime() + 3600000 - getDateObject(now).getTime())/3600000
+          var dt = new Date(),
+              dtmonth = "" + (dt.getMonth() + 1),
+              dtday = "" + dt.getDate(),
+              dtyear = dt.getFullYear()
+          if (dtmonth.length < 2) dtmonth = "0" + dtmonth
+          if (dtday.length < 2) dtday = "0" + dtday;
+          var dateF = [dtyear, dtmonth, dtday]
+          var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime()
+          if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
+          var hrstosun = (sunriseend - getDateObject(dt).getTime())/3600000
           if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2) + ", Stunden bis Sonnenaufgangende " + hrstosun.toFixed(2))}    
 
           let poihigh = [];
@@ -201,12 +221,12 @@ function processing() {
             poihigh[t] = [getState(Javascript + ".electricity.prices."+ t + ".price").val, getState(Javascript + ".electricity.prices."+ t + ".startTime").val, getState(Javascript + ".electricity.prices."+ t + ".endTime").val];
           };
           poihigh.sort(function(a, b, c){
-          return b[0] - a[0];
+            return b[0] - a[0];
           });
 
           var lefthrs = 0
           if (batlefthrs < hrstosun) {lefthrs = batlefthrs}
-          for (let d = 0; d < Math.round(lefthrs) ; d++) {
+          for (let d = 0; d < Math.ceil(lefthrs) ; d++) {
             if (compareTime(poihigh[d][1], poihigh[d][2], "not between")){
             maxdischrg = 0
             }
