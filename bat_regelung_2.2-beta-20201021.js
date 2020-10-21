@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/20*/
+/*Version 2.2 beta 2020/10/21*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -226,7 +226,7 @@ function processing() {
 
           var lefthrs = 0
           if (batlefthrs < hrstosun) {lefthrs = batlefthrs}
-          for (let d = 0; d < Math.ceil(lefthrs) ; d++) {
+          for (let d = 0; d < Math.round(lefthrs) ; d++) {
             if (compareTime(poihigh[d][1], poihigh[d][2], "not between")){
             maxdischrg = 0
             }
