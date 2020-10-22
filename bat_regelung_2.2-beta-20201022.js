@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/21*/
+/*Version 2.2 beta 2020/10/22*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -157,7 +157,7 @@ function processing() {
   if ( DevType < 9300 && bat != 1785 && batchrgmode != 1767 ) {
     ChaTm = 0
     ChaEnrg = 0
-  }  
+  }
 // Ende der Parametrierung
   if (debug == 1){console.log("Lademenge " + ChaEnrg + "Wh")}
   if (debug == 1){console.log("Restladezeit " + ChaTm.toFixed(2) + "h")}
@@ -185,7 +185,8 @@ function processing() {
         if (price0 <= stop_discharge && ChaTm >= lowprice.length ) {
           maxdischrg = 0
         }
-        var sunup, sundown
+        var sunup = 0,
+            sundown = 0
         for (let sd = 0; sd < 48 ; sd++) {
           if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast) {
             sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
@@ -196,11 +197,11 @@ function processing() {
               }
             }  
             sd = 48
-            if ( sunup === "" ){sunup = '09:00'} //nur falls die Sonne nicht mehr aufgeht ;) 
+            if ( sunup == 0 ){sunup = "09:00"} //nur falls die Sonne nicht mehr aufgeht ;) 
           }
         }
-        if (debug == 1){console.log('Nachtfenster:' + sundown + '-' + sunup)}
-        //if (compareTime({astro: 'sunsetStart', offset: -60}, {astro: 'sunriseEnd', offset: 60}, "between")){
+        if (debug == 1){console.log('Entladefenster:' + sundown + '-' + sunup)}
+        if (compareTime(sundown, sunup, "between")){
           // calc number of bat runtime hrs left
           var batlefthrs = (batcap*(batsoc-batlimit))/100/(grundlast*(1+1-wr_eff))
           // wieviel Stunden bis Sonnenaufgang
@@ -224,11 +225,13 @@ function processing() {
             return b[0] - a[0];
           });
 
-          var lefthrs = 0
-          if (batlefthrs < hrstosun) {lefthrs = batlefthrs}
-          for (let d = 0; d < Math.round(lefthrs) ; d++) {
-            if (compareTime(poihigh[d][1], poihigh[d][2], "not between")){
+          if (batlefthrs < hrstosun){
             maxdischrg = 0
+            for (let d = 0; d < Math.round(batlefthrs) ; d++) {
+              if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
+              if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
+                maxdischrg = maxdischrg_def
+              }
             }
           }
         }
@@ -403,6 +406,7 @@ if (SpntCom != SpntCom_def || SpntCom != lastSpntCom) {
 lastSpntCom = SpntCom
 
 }
+
 var Interval = setInterval(function () {
   processing(); /*start processing in interval*/
 }, (update*1000));
