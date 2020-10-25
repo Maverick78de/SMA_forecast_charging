@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/22*/
+/*Version 2.2 beta 2020/10/25*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -12,8 +12,8 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     batcap = 25344, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
-    bat_ziel = 85, /*gewünschtes Ladeziel der Regelung, bei Blei ca 85% da dann die Ladeleistung stark abfällt und keine vernünftige Regelung mehr zulässt. Bei LI sollte es 100 sein*/
-    grundlast = 0, /*Grundlast in Watt falls bekannt*/
+    bat_ziel = 90, /*gewünschtes Ladeziel der Regelung, bei Blei ca 85% da dann die Ladeleistung stark abfällt und keine vernünftige Regelung mehr zulässt. Bei LI sollte es 100 sein*/
+    grundlast = 400, /*Grundlast in Watt falls bekannt*/
     wr_eff = 0.958, /* max BatWR Effizienz laut Datenblatt 0.95=95%, 1.0=100% */
     bat_wr_pwr = 0, /* Ladeleistung der Batterie in W, 0=automatik (wird ausgelesen)*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
@@ -181,10 +181,6 @@ function processing() {
 
     if (compareTime(startTime0, endTime0, "between")){
       if (price0) {
-        // entladung stoppen wenn bezugspreis günstiger wie Batterieentladepreis ist.
-        if (price0 <= stop_discharge && ChaTm >= lowprice.length ) {
-          maxdischrg = 0
-        }
         var sunup = 0,
             sundown = 0
         for (let sd = 0; sd < 48 ; sd++) {
@@ -201,7 +197,7 @@ function processing() {
           }
         }
         if (debug == 1){console.log('Entladefenster:' + sundown + '-' + sunup)}
-        if (compareTime(sundown, sunup, "between")){
+        if (compareTime(sundown, null, ">") && compareTime(sundown, sunup, "between")){
           // calc number of bat runtime hrs left
           var batlefthrs = (batcap*(batsoc-batlimit))/100/(grundlast*(1+1-wr_eff))
           // wieviel Stunden bis Sonnenaufgang
@@ -235,6 +231,10 @@ function processing() {
             }
           }
         }
+        //entladung stoppen wenn preisschwelle erreicht
+        if (price0 <= stop_discharge && ( DevType < 9300 && bat == 1783 && batchrgmode != 1770 )) {
+          maxdischrg = 0
+        }
         //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
         if (lowprice.length > 0 && ChaTm <= lowprice.length) {
           maxchrg = 0
@@ -244,15 +244,9 @@ function processing() {
           maxchrg = 0
           maxdischrg = 0
           awattar_active = 1
-          // Erhaltungsladung PB
-          if (batsoc <= batlimit && bat != 1785) { 
-            maxchrg = 100
-            maxdischrg = 0
-            SpntCom = 802
-            PwrAtCom = -100
-          }
-
-          for (let i = 0; i <= Math.ceil(ChaTm); i++) {
+          var length = Math.ceil(ChaTm)
+          if (length > lowprice.length){length = lowprice.length}
+          for (let i = 0; i < length; i++) {
             if (compareTime(lowprice[i][1], lowprice[i][2], "between")){
               maxchrg = maxchrg_def
               maxdischrg = 0
@@ -366,7 +360,7 @@ function processing() {
       }
     }
 
-    max_pwr = Math.min(Math.max(max_pwr, min_pwr), maxchrg_def) //abfangen negativer werte, limitiere auf min_pwr
+    max_pwr = Math.min(Math.max(max_pwr, min_pwr), batwr_pwr) //abfangen negativer werte, limitiere auf min_pwr
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
