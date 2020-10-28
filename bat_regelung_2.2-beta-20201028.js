@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 beta 2020/10/25*/
+/*Version 2.2 beta 2020/10/28*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -197,7 +197,7 @@ function processing() {
           }
         }
         if (debug == 1){console.log('Entladefenster:' + sundown + '-' + sunup)}
-        if (compareTime(sundown, null, ">") && compareTime(sundown, sunup, "between")){
+        if (compareTime(sundown, sunup, "between")){
           // calc number of bat runtime hrs left
           var batlefthrs = (batcap*(batsoc-batlimit))/100/(grundlast*(1+1-wr_eff))
           // wieviel Stunden bis Sonnenaufgang
