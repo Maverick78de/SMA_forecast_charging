@@ -19,7 +19,7 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     ModBusBat = "modbus.2", /*ID der Modbusinstanz im ioBroker für den BatterieWR*/
     SMA_EM = "sma-em.0.1900208590", /*Name der SMA EnergyMeter/HM2 Instanz bei installierten SAM-EM Adapter, leer lassen wenn nicht vorhanden*/
     Javascript = "javascript.0",
-    Verbraucher = ["javascript.0.electricity.power.hauscsmp"]; /*starke Verbraucher mit Power in W berücksichtigen, hier kann der Realverbrauch in einem externen Script berechnet werden*/
+    Verbraucher = ["modbus.3.inputRegisters.30013_Pwr-L1","modbus.3.inputRegisters.30015_Pwr-L2","shelly.0.SHSW-PM#F2FDDC#1.Relay0.Power"]; /*starke Verbraucher mit Power in W berücksichtigen, hier kann der Realverbrauch in einem externen Script berechnet werden*/
 
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
