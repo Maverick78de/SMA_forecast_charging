@@ -9,7 +9,7 @@ var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 // statische Parameter
 var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 21610, /*pv anlagenleistung Wp */
-    batcap = 15360*(getState("modbus.2.inputRegisters.30847_BAT_SOH").val/100), /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
+    batcap = 15360, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     bat_ziel = 100, /*gewünschtes Ladeziel der Regelung, bei Blei ca 85% da dann die Ladeleistung stark abfällt und keine vernünftige Regelung mehr zulässt. Bei LI sollte es 100 sein.*/
