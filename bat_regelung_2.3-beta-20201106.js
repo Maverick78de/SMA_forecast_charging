@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 beta 2020/11/06*/
+/*Version 2.3 beta 2020/11/07*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -213,13 +213,14 @@ function processing() {
           var dateF = [dtyear, dtmonth, dtday]
           var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
               sundownend = getDateObject(dateF + " " + sundown + ":00").getTime()
-		  if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
           if (compareTime(sundown, sunup, "between")) {
               sundownend = dt.getTime()
               sundownhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2)
           }
+          if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
           if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup)}
           var hrstosun = (sunriseend - sundownend)/3600000
+          if (hrstosun > 24){hrstosun=0}
           if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2) + ", Stunden im Nachtfenster verbleibend " + hrstosun.toFixed(2))}    
 
           var poihigh = []
