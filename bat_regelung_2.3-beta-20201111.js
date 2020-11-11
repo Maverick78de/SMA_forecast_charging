@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 beta 2020/11/07*/
+/*Version 2.3 beta 2020/11/11*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -241,11 +241,11 @@ function processing() {
           if (batlefthrs < hrstosun && gridcharge == 1){
             var pricelimit = 0, m = 0, prclow = [], prchigh = []
             for (let h = 0; h < poihigh.length ; h++) {
-              pricelimit = poihigh[h][0]/loadfact
-              for (let l = 0; l < poihigh.length ; l++) {
-                if (poihigh[l][0] < pricelimit){
-                  prclow[m] = poihigh[l]
-                  prchigh[m] = poihigh[h]
+              pricelimit = poihigh[h][0]*loadfact
+              for (let l = h; l < poihigh.length ; l++) {
+                if (poihigh[l][0] > pricelimit){
+                  prclow[m] = poihigh[h]
+                  prchigh[m] = poihigh[l]
                   m++
                 }
               }
@@ -273,19 +273,24 @@ function processing() {
         
             if (chargetime > 0 && prclow.length > 0){
               //temporäres verschieben des entladefensters
-              var sunrisetmp = getDateObject(dateF + " " + prclow[0][1] + ":00").getTime()
-              if (compareTime(sunrisetmp, null, ">", null)) {sunrisetmp = sunrisetmp + 86400000}
-              hrstosun =  (sunrisetmp - getDateObject(dt).getTime())/3600000
-              var poitmp = []
-              if (compareTime(sundown, sunrisetmp, "between", null)) {
-                for (let t = 0; t < Math.ceil(hrstosun*2) ; t++) {
-                  poitmp[t] = poihigh[t]
-                };
-                poihigh = poitmp
+              var poitmp = [], x = 0
+              // sortiere Stunden für nachladung aus
+              for (let h = 0; h < prchigh.length ; h++) {
+                for (let p = 0; p < poihigh.length ; p++) {
+                  if (poihigh[p][1] != prchigh[h][1] && poihigh[p][2] != prchigh[h][2]){
+                    poitmp[x] = poihigh[p]
+                    x++
+                  }
+                }   
               }
-			  var chrglength = Math.ceil(chargetime)
+              var uniquepoitmp = poitmp.filter(function(value, index, self) { 
+                return self.indexOf(value) === index;
+              })
+              poihigh = uniquepoitmp
+              
+              var chrglength = Math.ceil(chargetime)
               if (chrglength > prclow.length){chrglength=prclow.length}
-              if (debug == 1){console.log("Nachladezeit: " + prclow[0][1] +'-'+ prclow[chrglength-1][2] + ' (' + maxchrg_def*chargetime + 'Wh)')}
+              if (debug == 1){console.log("Nachladezeit: " + prclow[0][1] +'-'+ prclow[chrglength-1][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')}
               if (batlefthrs < prchigh.length && prclow.length > 0){
                 for (let n = 0; n < chrglength ; n++) {
                   if (compareTime(prclow[n][1],prclow[n][2],"between")){
