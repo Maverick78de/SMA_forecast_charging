@@ -32,7 +32,7 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
     loadfact = 1-lossfactor+1,
-    stop_discharge = (start_charge * loadfact)+batprice
+    stop_discharge = (start_charge * loadfact)+(batprice/2)
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
