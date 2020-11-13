@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 beta 2020/11/11*/
+/*Version 2.3 beta 2020/11/13*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -25,13 +25,14 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     gridcharge = 1, /* laden mit Netzstrom erlaubt? Richtlinien beachten. Zum abschalten der Netzstromladung -> 0*/
     gridprice = 15.805, /*(netto bezugspreis)*/
+    batprice = 11.146, /*Speicherkosten pro kWh*/
     taxprice = gridprice * 0.16, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
     loadfact = 1-lossfactor+1,
-    stop_discharge = start_charge * loadfact;
+    stop_discharge = (start_charge * loadfact)+batprice
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -241,7 +242,7 @@ function processing() {
           if (batlefthrs < hrstosun && gridcharge == 1){
             var pricelimit = 0, m = 0, prclow = [], prchigh = []
             for (let h = 0; h < poihigh.length ; h++) {
-              pricelimit = poihigh[h][0]*loadfact
+              pricelimit = (poihigh[h][0]*loadfact)+batprice
               for (let l = h; l < poihigh.length ; l++) {
                 if (poihigh[l][0] > pricelimit){
                   prclow[m] = poihigh[h]
@@ -319,7 +320,7 @@ function processing() {
           }
         }
         //entladung stoppen wenn preisschwelle erreicht
-        if (price0 <= stop_discharge && ( DevType < 9300 && bat == 1783 && batchrgmode != 1770 )) {
+        if (price0 <= stop_discharge) {
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
