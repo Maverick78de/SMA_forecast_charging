@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.2 RC-1 2020/11/05*/
+/*Version 2.2 RC-2 2020/11/13*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -232,7 +232,7 @@ function processing() {
           }
         }
         //entladung stoppen wenn preisschwelle erreicht
-        if (price0 <= stop_discharge && ( DevType < 9300 && bat == 1783 && batchrgmode != 1770 )) {
+        if (price0 <= stop_discharge) {
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
