@@ -6,7 +6,6 @@ Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 var addprice = 18.52;
 const url = "https://api.awattar.de/v1/marketdata"; 
 
-
 function requestData() {
  
     const options = {
@@ -78,6 +77,6 @@ function requestData() {
     });
 }
 requestData();
-schedule("0 * * * *", function () {
+schedule("0,30 * * * *", function () {
     requestData();
 });
