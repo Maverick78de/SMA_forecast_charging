@@ -88,6 +88,10 @@ function create_datapoints(){
 create_datapoints();
 
 // 20 freie API Request pro Tag, daher 1x stündlich Abruf zwischen 4 und 22 Uhr.
-schedule("0 4-22 * * *", function () {
+schedule("0 5-21 * * *", function () {
     requestData();
 });
+schedule("0 1,3,23 * * *", function () {
+    requestData();
+});
+
