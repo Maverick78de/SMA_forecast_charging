@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 beta 2020/11/13*/
+/*Version 2.3 RC1 2020/11/24*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -32,7 +32,10 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
     loadfact = 1-lossfactor+1,
+																																										   
     stop_discharge = (start_charge * loadfact)+batprice
+																																											  
+								 
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -98,6 +101,8 @@ function processing() {
     console.log("Warnung! Ausgelesenes Entladelimit unplausibel! Setze auf 0%")
     batlimit = 0
   }
+		
+			   
   var batsoc = getState(BAT_SoC).val,
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
@@ -181,8 +186,7 @@ function processing() {
       }
     };
 
-    if (compareTime(startTime0, endTime0, "between")){
-      if (price0) {
+    if (price0) {
         //defaults
         var sunup = "06:00", 
             sundown = "18:00", 
@@ -345,7 +349,7 @@ function processing() {
         };
       };
     };
-  };
+
 // Ende der Awattar Sektion
 
 // Start der PV Prognose Sektion
