@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC1 2020/11/24*/
+/*Version 2.3 RC2 2020/11/25*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -135,9 +135,7 @@ function processing() {
     
 //nur für Awattar
   if (awattar == 1) {
-    var startTime0 = getState( Javascript + ".electricity.prices.0.startTime").val,
-        endTime0 = getState(Javascript + ".electricity.prices.0.endTime").val,
-        price0 = getState(Javascript + ".electricity.prices.0.price").val
+    var price0 = getState(Javascript + ".electricity.prices.0.price").val
   };  
 //Parametrierung Speicher
   if (bat != 1785) {
@@ -248,7 +246,7 @@ function processing() {
             for (let h = 0; h < poihigh.length ; h++) {
               pricelimit = (poihigh[h][0]*loadfact)+batprice
               for (let l = h; l < poihigh.length ; l++) {
-                if (poihigh[l][0] > pricelimit){
+                if (poihigh[l][0] > pricelimit && poihigh[l][0] > stop_discharge ){
                   prclow[m] = poihigh[h]
                   prchigh[m] = poihigh[l]
                   m++
@@ -315,9 +313,11 @@ function processing() {
             if (batlefthrs > 0 && batlefthrs < hrstosun){
               maxdischrg = 0
               for (let d = 0; d < Math.ceil(batlefthrs*2) ; d++) {
-                if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
-                if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
-                  maxdischrg = maxdischrg_def
+                if (poihigh[d][0] > stop_discharge){
+                  if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
+                  if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
+                    maxdischrg = maxdischrg_def
+                  }
                 }
               } 
             }
@@ -325,6 +325,7 @@ function processing() {
         }
         //entladung stoppen wenn preisschwelle erreicht
         if (price0 <= stop_discharge) {
+          if (debug == 1){console.log("Stoppe Entladung, Preis unter Batterieschwelle von" + stop_discharge.toFixed(2) + "ct/kWh")}
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
@@ -348,7 +349,7 @@ function processing() {
           };
         };
       };
-    };
+  };
 
 // Ende der Awattar Sektion
 
