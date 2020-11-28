@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC3 2020/11/27*/
+/*Version 2.3 RC4 2020/11/28*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -223,7 +223,7 @@ function processing() {
 
           var poihigh = []
           var tt = 0
-          for (let t = 0; t <= Math.ceil(Math.min(((sunriseend - dt.getTime())/3600000),24)) ; t++) {
+          for (let t = 0; t < Math.ceil(Math.min((((sunriseend - dt.getTime())/3600000)+1),24)) ; t++) {
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
                 prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
             if (compareTime(sundownhr, '23:39:59', 'between', hrparse + ":00")||compareTime('00:00:00', sunup, 'between', hrparse + ":00")){
