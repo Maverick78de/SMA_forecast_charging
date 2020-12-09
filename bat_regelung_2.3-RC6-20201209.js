@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC5 2020/12/01*/
+/*Version 2.3 RC6 2020/12/09*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -25,12 +25,13 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     gridcharge = 1, /* laden mit Netzstrom erlaubt? Richtlinien beachten. Zum abschalten der Netzstromladung -> 0*/
     gridprice = 15.805, /*(netto bezugspreis)*/
-    batprice = 11.146, /*Speicherkosten pro kWh*/
+    batprice = 0, /*Speicherkosten pro kWh*/
     taxprice = gridprice * 0.16, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
+								   
     loadfact = 1-lossfactor+1,
 																																										   
     stop_discharge = (start_charge * loadfact)+batprice
@@ -187,71 +188,85 @@ function processing() {
     if (price0) {
         //defaults
         var dt = new Date(),
-            nowhr = dt.getHours() + ":" + dt.getMinutes(),
-            sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
-            sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes()
-        for (let sd = 0; sd < 48 ; sd++) {
-          if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast/2) {
-            sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
-            for (let su = sd; su < 48 ; su++) {
-              if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast/2) {
-                sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
-                su = 48
-              }
-            }  
-            sd = 48
-          }
-        }
-        
-        if (compareTime(nowhr, sunup, "between")){
-          // calc number of bat runtime hrs left
-          var batlefthrs = (batcap*(batsoc-batlimit)/100)/(grundlast*(1+1-wr_eff))
-          // wieviel Stunden bis Sonnenaufgang
-          var dtmonth = "" + (dt.getMonth() + 1),
-              dtday = "" + dt.getDate(),
-              dtyear = dt.getFullYear(),
-              sundownhr = sundown
-          if (dtmonth.length < 2) dtmonth = "0" + dtmonth
-          if (dtday.length < 2) dtday = "0" + dtday;
-          var dateF = [dtyear, dtmonth, dtday]
-          var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
-              sundownend = getDateObject(dateF + " " + sundown + ":00").getTime()
-          if (compareTime(sundown, sunup, "between")) {
-              sundownend = dt.getTime()
-              sundownhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2)
-          }
-          if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
-          if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup)}
-          var hrstosun = (sunriseend - sundownend)/3600000
-          if (hrstosun > 24){hrstosun = 0}
-          if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2) + ", Stunden im Nachtfenster " + hrstosun.toFixed(2))}
+        nowhr = dt.getHours() + ":" + dt.getMinutes(),
+        timeup = getDateObject(new Date().getTime()-1800000).getHours() + ":" + getDateObject(new Date().getTime()-1800000).getMinutes(),
+        nowhalfhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2),
+        batlefthrs = (batcap*(batsoc-batlimit)/100)/(grundlast*(1+1-wr_eff)),
+        hrstorun = 24
+        if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2))}
 
-          var poihigh = []
-          var tt = 0
-          for (let t = 0; t < Math.ceil(Math.min((((sunriseend - dt.getTime())/3600000)+1),24)) ; t++) {
+        //wieviel wh kommen in etwa von PV in den nächsten 24h
+        var pvwh = 0
+        for (let p = 0; p < hrstorun*2; p++) {
+            pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
+        }
+		
+        if (pvwh >= grundlast*hrstorun){
+            var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
+            sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
+            dtmonth = "" + (dt.getMonth() + 1),
+            dtday = "" + dt.getDate(),
+            dtyear = dt.getFullYear()
+            if (dtmonth.length < 2) dtmonth = "0" + dtmonth
+            if (dtday.length < 2) dtday = "0" + dtday;
+            var dateF = [dtyear, dtmonth, dtday]
+
+            for (let sd = 0; sd < hrstorun*2 ; sd++) {
+                if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast/2) {
+                    sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
+                    for (let su = sd; su < hrstorun*2 ; su++) {
+                        if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast/2) {
+                            sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
+                            su = hrstorun
+                        }
+                    }  
+                    sd = hrstorun
+                }
+            }
+		
+            var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
+            sundownend = getDateObject(dateF + " " + sundown + ":00").getTime(),
+            sundownhr = sundown
+            if (compareTime(sundown, sunup, "between")) {
+                sundownend = dt.getTime()
+                sundownhr = nowhalfhr
+            }
+            if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
+            if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup)}
+            hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
+            pvwh = 0
+            //wieviel wh kommen in etwa von PV die verkürzt
+            for (let p = 0; p < hrstorun*2; p++) {
+                pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
+            }
+        }
+        if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von PV")}
+		
+        var poihigh = [], tt = 0
+        for (let t = 0; t < hrstorun ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
-                prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
-            if (compareTime(sundownhr, '23:39:59', 'between', hrparse + ":00")||compareTime('00:00:00', sunup, 'between', hrparse + ":00")){
-              poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
-              tt++
+            prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
+            if (compareTime(nowhalfhr, '23:39:59', 'between', hrparse + ":00")||compareTime('00:00:00', timeup, 'between', hrparse + ":00")){
+                poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
+                tt++
             }
-            if (compareTime(sundownhr, '23:39:59', 'between', hrparse + ":30")||compareTime('00:00:00', sunup, 'between', hrparse + ":30")){
-              poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
-              tt++
+            if (compareTime(nowhalfhr, '23:39:59', 'between', hrparse + ":30")||compareTime('00:00:00', timeup, 'between', hrparse + ":30")){
+                poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
+                tt++
             }
-          };
-          // ggf nachladen?
-          if (batlefthrs < hrstosun && gridcharge == 1){
+        };
+        // ggf nachladen?
+        if (batlefthrs < hrstorun && gridcharge == 1){
             var pricelimit = 0, m = 0, prclow = [], prchigh = []
             for (let h = 0; h < poihigh.length ; h++) {
-              pricelimit = (poihigh[h][0]*loadfact)+batprice
-              for (let l = h; l < poihigh.length ; l++) {
-                if (poihigh[l][0] > pricelimit && poihigh[l][0] > stop_discharge ){
-                  prclow[m] = poihigh[h]
-                  prchigh[m] = poihigh[l]
-                  m++
+                pricelimit = (poihigh[h][0]*loadfact)+batprice
+                for (let l = h; l < poihigh.length ; l++) {
+                    if (poihigh[l][0] > pricelimit && poihigh[h][0] > stop_discharge ){
+                        prclow[m] = poihigh[h]
+                        prchigh[m] = poihigh[l]
+                        m++
+                    }
                 }
-              }
             }
             var uniqueprclow = prclow.filter(function(value, index, self) { 
                 return self.indexOf(value) === index;
@@ -262,71 +277,61 @@ function processing() {
             prclow = uniqueprclow
             prchigh = uniqueprchigh
             prclow.sort(function(a, b, c){
-              return a[0] - b[0];
+                return a[0] - b[0];
             })
             prchigh.sort(function(a, b, c){
-              return b[0] - a[0];
+                return b[0] - a[0];
             })
-            //wieviel wh kommen in etwa von PV
-            var pvwh = 0
-            for (let p = 0; p <  Math.ceil(Math.min((((getDateObject(dateF + " " + sundown + ":00").getTime() - dt.getTime())/3600000)*2),48)) ; p++) {
-                pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val)/2
+            
+            //nachlademenge 
+            var chargewh = ((prchigh.length-1)*(grundlast/2)*loadfact)
+            if (hrstorun < 24){
+               chargewh = chargewh-(pvwh*wr_eff)
             }
-            if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von der PV Anlage")}
-            var chargetime = Math.max(((((prchigh.length-1*grundlast)-pvwh)*loadfact)/maxchrg_def),0)
-            // falls speicher unter unterster Entladegrenze das auch noch drauf addieren
-            if (batsoc < batlimit){
-               chargetime = chargetime+(((batcap/100)*(batsoc - batlimit)*(1+1-wr_eff))/maxchrg_def)
-            }
-        
+            var curbatwh = ((batcap/100)*(batsoc - batlimit)),
+            chargetime = Math.max((chargewh/maxchrg_def),0)
+
             if (chargetime > 0 && prclow.length > 0){
-              //temporäres verschieben des entladefensters
-              var poitmp = [], x = 0
-              // sortiere Stunden für nachladung aus
-              for (let h = 0; h < prchigh.length ; h++) {
-                for (let p = 0; p < poihigh.length ; p++) {
-                  if (poihigh[p][1] != prchigh[h][1] && poihigh[p][2] != prchigh[h][2]) {
-                    poitmp[x] = poihigh[p]
-                    x++
-                  }
-                }   
-              }
-              var uniquepoitmp = poitmp.filter(function(value, index, self) { 
-                return self.indexOf(value) === index;
-              })
-              poihigh = uniquepoitmp
-              
-              var chrglength = Math.ceil(chargetime)
-              if (chrglength > prclow.length){chrglength=prclow.length}
-              if (debug == 1){console.log("Nachladezeit: " + prclow[0][1] +'-'+ prclow[chrglength-1][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')}
-              if (batlefthrs < prchigh.length && prclow.length > 0){
-                for (let n = 0; n < chrglength ; n++) {
-                  if (compareTime(prclow[n][1],prclow[n][2],"between")){
-                    maxchrg = maxchrg_def
-                    maxdischrg = 0
-                    SpntCom = 802
-                    PwrAtCom = -Math.min(Math.round(maxchrg_def*chargetime),maxchrg_def)
-                  }
-                }  
-              }
-            }
-          }
-          poihigh.sort(function(a, b, c){
-            return b[0] - a[0];
-          });
-          if (compareTime(nowhr, sunup, "between")){
-            if (batlefthrs > 0 && batlefthrs < hrstosun){
-              maxdischrg = 0
-              for (let d = 0; d < Math.ceil(batlefthrs*2) ; d++) {
-                if (poihigh[d][0] > stop_discharge){
-                  if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
-                  if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
-                    maxdischrg = maxdischrg_def
-                  }
+                var poitmp = [], m = 0
+                for (let l = 0; l < poihigh.length ; l++) {
+                    poitmp[m] = poihigh[l]
+                    m++
+                    if (poihigh[l][2] == prclow[0][1]){
+                        l = poihigh.length
+                    }
                 }
-              } 
+                poihigh = []
+                poihigh = poitmp
+              
+                var chrglength = Math.ceil(chargetime*2)
+                if (chrglength > prclow.length){chrglength=prclow.length}
+                if (debug == 1){console.log("Nachladezeit: " + prclow[0][1] +'-'+ prclow[chrglength-1][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')}
+                if (prclow.length > 0 && curbatwh < chargewh){
+                    for (let n = 0; n < chrglength ; n++) {
+                        if (compareTime(prclow[n][1],prclow[n][2],"between")){
+                            maxchrg = maxchrg_def
+                            maxdischrg = 0
+                            SpntCom = 802
+                            PwrAtCom = -Math.min(Math.round(maxchrg_def*chargetime),PwrAtCom_def)
+                        }
+                    }  
+                }
             }
-          }
+        }
+        poihigh.sort(function(a, b, c){
+            return b[0] - a[0];
+        });
+        
+        if (batlefthrs > 0 && batlefthrs < hrstorun){
+            maxdischrg = 0
+            for (let d = 0; d < Math.ceil(batlefthrs*2) ; d++) {
+                if (poihigh[d][0] > stop_discharge){
+                    if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
+                    if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
+                        maxdischrg = maxdischrg_def
+                    }
+                }
+            } 
         }
         //entladung stoppen wenn preisschwelle erreicht
         if (price0 <= stop_discharge) {
