@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC6 2020/12/09*/
+/*Version 2.3 RC7 2020/12/10*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -191,7 +191,7 @@ function processing() {
         nowhr = dt.getHours() + ":" + dt.getMinutes(),
         timeup = getDateObject(new Date().getTime()-1800000).getHours() + ":" + getDateObject(new Date().getTime()-1800000).getMinutes(),
         nowhalfhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2),
-        batlefthrs = (batcap*(batsoc-batlimit)/100)/(grundlast*(1+1-wr_eff)),
+        batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast*(1+1-wr_eff)),
         hrstorun = 24
         if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2))}
 
@@ -201,7 +201,7 @@ function processing() {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
 		
-        if (pvwh >= grundlast*hrstorun){
+        if (pvwh > grundlast*hrstorun/2){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
             dtmonth = "" + (dt.getMonth() + 1),
@@ -217,13 +217,13 @@ function processing() {
                     for (let su = sd; su < hrstorun*2 ; su++) {
                         if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast/2) {
                             sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
-                            su = hrstorun
+                            su = hrstorun*2
                         }
                     }  
-                    sd = hrstorun
+                    sd = hrstorun*2
                 }
             }
-		
+			
             var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
             sundownend = getDateObject(dateF + " " + sundown + ":00").getTime(),
             sundownhr = sundown
@@ -232,7 +232,8 @@ function processing() {
                 sundownhr = nowhalfhr
             }
             if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
-            if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup)}
+            hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
+            if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup + " (" + hrstorun + "h)")}
             hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
             pvwh = 0
             //wieviel wh kommen in etwa von PV die verkürzt
@@ -312,7 +313,7 @@ function processing() {
                             maxchrg = maxchrg_def
                             maxdischrg = 0
                             SpntCom = 802
-                            PwrAtCom = -Math.min(Math.round(maxchrg_def*chargetime),PwrAtCom_def)
+                            PwrAtCom = -PwrAtCom_def
                         }
                     }  
                 }
