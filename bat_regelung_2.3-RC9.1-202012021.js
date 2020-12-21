@@ -31,12 +31,8 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
-								   
     loadfact = 1-lossfactor+1,
-																																										   
     stop_discharge = (start_charge * loadfact)+batprice
-																																											  
-								 
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -102,8 +98,6 @@ function processing() {
     console.log("Warnung! Ausgelesenes Entladelimit unplausibel! Setze auf 0%")
     batlimit = 0
   }
-		
-			   
   var batsoc = Math.min(getState(BAT_SoC).val,100),
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
@@ -200,7 +194,6 @@ function processing() {
         for (let p = 0; p < hrstorun*2; p++) {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
-		
         if (pvwh > (grundlast*hrstorun/2)){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
@@ -223,7 +216,6 @@ function processing() {
                     sd = hrstorun*2
                 }
             }
-			
             var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
             sundownend = getDateObject(dateF + " " + sundown + ":00").getTime(),
             sundownhr = sundown
@@ -242,22 +234,18 @@ function processing() {
             }
         }
         if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von PV")}
-		
         var poihigh = [], tt = 0
         for (let t = 0; t < hrstorun ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
             prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
-																																				 
             poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
             tt++
             if (t == 0 && nowhalfhr == (hrparse + ":30")){ 
                 tt--
             }
-
             poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
             tt++
         };
-							  
         // ggf nachladen?
         if (batlefthrs < hrstorun && gridcharge == 1){
             var pricelimit = 0, m = 0, mh = 0, prclow = [], prchigh = []
@@ -371,7 +359,6 @@ function processing() {
         };
       };
   };
-
 // Ende der Awattar Sektion
 
 // Start der PV Prognose Sektion
