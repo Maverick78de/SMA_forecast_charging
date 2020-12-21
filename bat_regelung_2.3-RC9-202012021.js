@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC8 2020/12/17*/
+/*Version 2.3 RC9 2020/12/21*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -31,8 +31,12 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
+								   
     loadfact = 1-lossfactor+1,
+																																										   
     stop_discharge = (start_charge * loadfact)+batprice
+																																											  
+								 
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -98,7 +102,9 @@ function processing() {
     console.log("Warnung! Ausgelesenes Entladelimit unplausibel! Setze auf 0%")
     batlimit = 0
   }
-  var batsoc = Math.min(getState(BAT_SoC).val+0.5,100),
+		
+			   
+  var batsoc = Math.min(getState(BAT_SoC).val,100),
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
       batwr_pwr = bat_wr_pwr
@@ -194,6 +200,7 @@ function processing() {
         for (let p = 0; p < hrstorun*2; p++) {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
+		
         if (pvwh > (grundlast*hrstorun/2)){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
@@ -216,6 +223,7 @@ function processing() {
                     sd = hrstorun*2
                 }
             }
+			
             var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
             sundownend = getDateObject(dateF + " " + sundown + ":00").getTime(),
             sundownhr = sundown
@@ -234,28 +242,36 @@ function processing() {
             }
         }
         if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von PV")}
+		
         var poihigh = [], tt = 0
         for (let t = 0; t < hrstorun ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
             prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
+																																				 
             poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
             tt++
             if (t == 0 && nowhalfhr == (hrparse + ":30")){ 
                 tt--
             }
+
             poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
             tt++
         };
+							  
         // ggf nachladen?
         if (batlefthrs < hrstorun && gridcharge == 1){
-            var pricelimit = 0, m = 0, prclow = [], prchigh = []
+            var pricelimit = 0, m = 0, mh = 0, prclow = [], prchigh = []
             for (let h = 0; h < poihigh.length ; h++) {
                 pricelimit = (poihigh[h][0]*loadfact)+batprice
                 for (let l = h; l < poihigh.length ; l++) {
-                    if (poihigh[l][0] > pricelimit && poihigh[h][0] > stop_discharge ){
+                    if (poihigh[l][0] > pricelimit){
                         prclow[m] = poihigh[h]
-                        prchigh[m] = poihigh[l]
+
                         m++
+                        if (poihigh[l][0] > stop_discharge){
+                            prchigh[mh] = poihigh[l]
+                        }
+                        mh++
                     }
                 }
             }
@@ -296,7 +312,11 @@ function processing() {
               
                 var chrglength = Math.ceil(chargetime*2)
                 if (chrglength > prclow.length){chrglength=prclow.length}
-                if (debug == 1){console.log("Nachladezeit: " + prclow[0][1] +'-'+ prclow[chrglength-1][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')}
+                if (debug == 1){
+                    for (let o = 0; o < chrglength ; o++){
+                        console.log("Nachladezeit: " + prclow[o][1] +'-'+ prclow[o][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')
+                    }
+                }
                 if (prclow.length > 0 && curbatwh < chargewh){
                     for (let n = 0; n < chrglength ; n++) {
                         if (compareTime(prclow[n][1],prclow[n][2],"between")){
@@ -351,6 +371,7 @@ function processing() {
         };
       };
   };
+
 // Ende der Awattar Sektion
 
 // Start der PV Prognose Sektion
