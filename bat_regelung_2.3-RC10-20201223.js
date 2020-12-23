@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC9 2020/12/21*/
+/*Version 2.3 RC10 2020/12/23*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -234,8 +234,13 @@ function processing() {
             }
         }
         if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von PV")}
-        var poihigh = [], tt = 0
-        for (let t = 0; t < hrstorun ; t++){
+        
+        var poihigh = [], tt = 0, pricehrs = hrstorun
+        //neue Preisdaten ab 14 Uhr
+        if (compareTime("14:00", null, "<", null)){
+            pricehrs = 24-dt.getHours()
+        }
+        for (let t = 0; t < pricehrs ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
             prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
             poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
@@ -243,8 +248,8 @@ function processing() {
             if (t == 0 && nowhalfhr == (hrparse + ":30")){ 
                 tt--
             }
-            poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
-            tt++
+                poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
+                tt++
         };
         // ggf nachladen?
         if (batlefthrs < hrstorun && gridcharge == 1){
@@ -258,8 +263,8 @@ function processing() {
                         m++
                         if (poihigh[l][0] > stop_discharge){
                             prchigh[mh] = poihigh[l]
+                            mh++
                         }
-                        mh++
                     }
                 }
             }
@@ -269,7 +274,9 @@ function processing() {
             var uniqueprchigh = prchigh.filter(function(value, index, self) { 
                 return self.indexOf(value) === index;
             })
+            prclow = []
             prclow = uniqueprclow
+            prchigh = []
             prchigh = uniqueprchigh
             prclow.sort(function(a, b, c){
                 return a[0] - b[0];
@@ -321,13 +328,19 @@ function processing() {
             return b[0] - a[0];
         });
         
-        if (batlefthrs > 0 && batlefthrs < hrstorun){
-            maxdischrg = 0
-            for (let d = 0; d < Math.ceil(batlefthrs*2) ; d++) {
-                if (poihigh[d][0] > stop_discharge){
-                    if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
-                    if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
-                        maxdischrg = maxdischrg_def
+        var lefthrs = Math.ceil(batlefthrs*2)
+        if (lefthrs > 0 && lefthrs > poihigh.length){
+            lefthrs = poihigh.length
+        }
+        if (lefthrs > 0 && lefthrs < hrstorun*2){
+            if (Math.ceil(batlefthrs*2) <= lefthrs){
+                maxdischrg = 0
+                for (let d = 0; d < lefthrs; d++) {
+                    if (poihigh[d][0] > stop_discharge){
+                        if (debug == 1){console.log("Entladezeiten: " + poihigh[d][1] +'-'+ poihigh[d][2])}
+                        if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
+                            maxdischrg = maxdischrg_def
+                        }
                     }
                 }
             } 
