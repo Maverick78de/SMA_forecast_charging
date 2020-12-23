@@ -1,4 +1,4 @@
-![[Paypal](https://www.openmptcprouter.com/img/donate-PayPal-green.svg)](https://www.paypal.me/Maverick78de)
+[![Paypal](https://raw.githubusercontent.com/Maverick78de/SMA_forecast_charging/master/img/donate-PayPal-green.svg)](https://www.paypal.me/Maverick78de)
 
 # SMA_forecast_charging
 SMA prognosebasierte Ladung mit ioBroker 
