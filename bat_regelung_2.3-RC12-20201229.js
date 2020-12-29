@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC11 2020/12/29*/
+/*Version 2.3 RC12 2020/12/29*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -31,8 +31,12 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
+								   
     loadfact = 1-lossfactor+1,
+																																										   
     stop_discharge = (start_charge * loadfact)+batprice
+																																											  
+								 
 // Ende Awattar
 
 // BAT-WR Register Definition, nur bei Bedarf anpassen
@@ -98,6 +102,8 @@ function processing() {
     console.log("Warnung! Ausgelesenes Entladelimit unplausibel! Setze auf 0%")
     batlimit = 0
   }
+		
+			   
   var batsoc = Math.min(getState(BAT_SoC).val,100),
       cur_power_out = getState(PowerOut).val,
       batminlimit = batlimit+bat_grenze,
@@ -194,6 +200,7 @@ function processing() {
         for (let p = 0; p < hrstorun*2; p++) {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
+		
         if (pvwh > (grundlast*hrstorun/2)){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
@@ -216,6 +223,7 @@ function processing() {
                     sd = hrstorun*2
                 }
             }
+			
             var sunriseend = getDateObject(dateF + " " + sunup + ":00").getTime(),
             sundownend = getDateObject(dateF + " " + sundown + ":00").getTime(),
             sundownhr = sundown
@@ -226,7 +234,6 @@ function processing() {
             if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
             hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
             if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup + " (" + hrstorun.toFixed(2) + "h)")}
-            hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
             pvwh = 0
             //wieviel wh kommen in etwa von PV die verkürzt
             for (let p = 0; p < hrstorun*2; p++) {
@@ -235,7 +242,7 @@ function processing() {
         }
         if (debug == 1){console.log("Erwarte ca " + (pvwh/1000).toFixed(1) + "kWh von PV")}
         
-        var poihigh = [], tt = 0, pricehrs = hrstorun
+        var poihigh = [], tt = 0, ttpv = 0, pricehrs = hrstorun
         //neue Preisdaten ab 14 Uhr
         if (compareTime("14:00", null, "<", null)){
             pricehrs = 24-dt.getHours()
@@ -243,28 +250,27 @@ function processing() {
         for (let t = 0; t < pricehrs ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
             prcparse = getState(Javascript + ".electricity.prices."+ t + ".price").val
-            poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30"]
+            poihigh[tt] = [prcparse, hrparse + ":00", hrparse + ":30",getState(Javascript + ".electricity.pvforecast."+ ttpv + ".power").val]
             tt++
+            ttpv++
             if (t == 0 && nowhalfhr == (hrparse + ":30")){ 
                 tt--
             }
-                poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val]
-                tt++
+            poihigh[tt] = [prcparse, hrparse + ":30", getState(Javascript + ".electricity.prices."+ t + ".endTime").val, getState(Javascript + ".electricity.pvforecast."+ ttpv + ".power").val]
+            tt++
+            ttpv++
         };
         // ggf nachladen?
+        var prclow = [], prchigh = []
         if (batlefthrs < hrstorun && gridcharge == 1){
-            var pricelimit = 0, m = 0, mh = 0, prclow = [], prchigh = []
+            var pricelimit = 0, m = 0
             for (let h = 0; h < poihigh.length ; h++) {
                 pricelimit = (poihigh[h][0]*loadfact)+batprice
                 for (let l = h; l < poihigh.length ; l++) {
-                    if (poihigh[l][0] > pricelimit){
+                    if (poihigh[l][0] > pricelimit && poihigh[l][0] > stop_discharge && poihigh[l][3] < grundlast){
                         prclow[m] = poihigh[h]
-
+                        prchigh[m] = poihigh[l]
                         m++
-                        if (poihigh[l][0] > stop_discharge){
-                            prchigh[mh] = poihigh[l]
-                            mh++
-                        }
                     }
                 }
             }
@@ -294,18 +300,7 @@ function processing() {
             chargetime = Math.max((chargewh/maxchrg_def),0)
 
             if (chargetime > 0 && prclow.length > 0){
-                var poitmp = [], m = 0
-                for (let l = 0; l < poihigh.length ; l++) {
-                    poitmp[m] = poihigh[l]
-                    m++
-                    if (poihigh[l][2] == prclow[0][1]){
-                        l = poihigh.length
-                    }
-                }
-                poihigh = []
-                poihigh = poitmp
-              
-                var chrglength = Math.ceil(Math.max((chargewh-curbatwh)/maxchrg_def,0)*2)
+                var chrglength = Math.ceil(Math.max((chargewh-curbatwh)/maxchrg_def,0)*2) //Math.ceil(chargetime*2)
                 if (chrglength > prclow.length){chrglength=prclow.length}
                 if (debug == 1){
                     for (let o = 0; o < chrglength ; o++){
@@ -324,6 +319,25 @@ function processing() {
                 }
             }
         }
+        // neuaufbau poihigh 
+        var poitmp = [], pvpoi = [], m = 0, mpv = 0
+        for (let l = 0; l < poihigh.length ; l++) {
+            if (poihigh[l][3] < grundlast){
+                poitmp[m] = poihigh[l]
+                m++
+            }
+            if (poihigh[l][3] >= grundlast){
+                pvpoi[mpv] = poihigh[l]
+                mpv++
+            }
+            if (prclow.length > 0){
+                if (poihigh[l][2] == prclow[0][1]){
+                    l = poihigh.length
+                }
+            }
+        }
+        poihigh = []
+        poihigh = poitmp
         poihigh.sort(function(a, b, c){
             return b[0] - a[0];
         });
@@ -341,6 +355,12 @@ function processing() {
                         if (compareTime(poihigh[d][1], poihigh[d][2], "between")){
                             maxdischrg = maxdischrg_def
                         }
+                    }
+                }
+				//während der PV Zeiten keine Regelung
+                for (let g = 0; g < pvpoi.length; g++) {
+                    if (compareTime(pvpoi[g][1], pvpoi[g][2], "between")){
+                        maxdischrg = maxdischrg_def
                     }
                 }
             } 
@@ -372,6 +392,7 @@ function processing() {
         };
       };
   };
+
 // Ende der Awattar Sektion
 
 // Start der PV Prognose Sektion
