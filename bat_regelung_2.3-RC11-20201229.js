@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC10 2020/12/23*/
+/*Version 2.3 RC11 2020/12/29*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -305,11 +305,11 @@ function processing() {
                 poihigh = []
                 poihigh = poitmp
               
-                var chrglength = Math.ceil(chargetime*2)
+                var chrglength = Math.ceil(Math.max((chargewh-curbatwh)/maxchrg_def,0)*2)
                 if (chrglength > prclow.length){chrglength=prclow.length}
                 if (debug == 1){
                     for (let o = 0; o < chrglength ; o++){
-                        console.log("Nachladezeit: " + prclow[o][1] +'-'+ prclow[o][2] + ' (' + Math.round(maxchrg_def*chargetime) + 'Wh)')
+                        console.log("Nachladezeit: " + prclow[o][1] +'-'+ prclow[o][2] + ' (' + Math.round(chargewh-curbatwh) + 'Wh)')
                     }
                 }
                 if (prclow.length > 0 && curbatwh < chargewh){
