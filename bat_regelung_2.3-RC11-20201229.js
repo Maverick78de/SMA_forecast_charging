@@ -347,7 +347,7 @@ function processing() {
         }
         //entladung stoppen wenn preisschwelle erreicht
         if (price0 <= stop_discharge) {
-          if (debug == 1){console.log("Stoppe Entladung, Preis unter Batterieschwelle von" + stop_discharge.toFixed(2) + "ct/kWh")}
+          if (debug == 1){console.log("Stoppe Entladung, Preis unter Batterieschwelle von " + stop_discharge.toFixed(2) + "ct/kWh")}
           maxdischrg = 0
         }
         //ladung stoppen wenn Restladezeit kleiner Billigstromzeitfenster
