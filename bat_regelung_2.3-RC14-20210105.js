@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC13 2021/01/02*/
+/*Version 2.3 RC14 2021/01/05*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -224,7 +224,7 @@ function processing() {
                 sundownhr = nowhalfhr
             }
             if (compareTime(sunriseend, null, ">", null)) {sunriseend = sunriseend + 86400000}
-            hrstorun = Math.min(Math.ceil((sunriseend - sundownend)/3600000),24)
+            hrstorun = Math.min(((sunriseend - sundownend)/3600000),24)
             if (debug == 1){console.log('Nachtfenster:' + sundownhr + '-' + sunup + " (" + hrstorun.toFixed(2) + "h)")}
             pvwh = 0
             //wieviel wh kommen in etwa von PV die verkürzt
@@ -237,7 +237,10 @@ function processing() {
         var poihigh = [], tt = 0, pricehrs = hrstorun
         //neue Preisdaten ab 14 Uhr
         if (compareTime("14:00", null, "<", null)){
-            pricehrs = 24-dt.getHours()
+            var remainhrs = 24-dt.getHours()
+            if (pricehrs > remainhrs){
+                pricehrs = remainhrs
+            }
         }
         for (let t = 0; t < pricehrs ; t++){
             var hrparse = getState(Javascript + ".electricity.prices."+ t + ".startTime").val.split(':')[0],
@@ -484,7 +487,6 @@ function processing() {
 // Ende der PV Prognose Sektion
 
 //write data
-//if (debug == 1){console.log(maxchrg + "!=" + maxchrg_def + "||" + maxchrg + "!=" + lastmaxchrg + "||" + maxdischrg + "!=" + maxdischrg_def + "||" + maxdischrg + "!=" + lastmaxdischrg)}
 if (maxchrg != maxchrg_def || maxchrg != lastmaxchrg || maxdischrg != maxdischrg_def || maxdischrg != lastmaxdischrg) {
   if (debug == 1){console.log("Daten an WR:" + maxchrg + ', '+ maxdischrg)}
   setState(CmpBMSOpMod, bms, false);
