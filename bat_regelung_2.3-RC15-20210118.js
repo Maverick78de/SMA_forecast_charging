@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC14 2021/01/05*/
+/*Version 2.3 RC15 2021/01/18*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -24,6 +24,7 @@ var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
 // ab hier Awattar Bereich
 var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     gridcharge = 1, /* laden mit Netzstrom erlaubt? Richtlinien beachten. Zum abschalten der Netzstromladung -> 0*/
+    snowmode = 0, /*manuelles setzen des Schneemodus, dadurch wird in der Nachladeplanung die PV Prognose ignoriert, z.b. bei Schneebedeckten PV Modulen und der daraus resultierenden falschen Prognose*/
     gridprice = 15.805, /*(netto bezugspreis)*/
     batprice = 0, /*Speicherkosten pro kWh*/
     taxprice = gridprice * 0.16, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
@@ -194,7 +195,7 @@ function processing() {
         for (let p = 0; p < hrstorun*2; p++) {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
-        if (pvwh > (grundlast*hrstorun/2)){
+        if (pvwh > (grundlast*hrstorun/2) && snowmode === 0 ){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
             dtmonth = "" + (dt.getMonth() + 1),
