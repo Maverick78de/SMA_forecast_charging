@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC15 2021/01/18*/
+/*Version 2.3 RC16 2021/01/21*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -188,6 +188,7 @@ function processing() {
         nowhalfhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2),
         batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast*(1+1-wr_eff)),
         hrstorun = 24
+		if (Number(nowhalfhr.split(':')[0]) < 10){nowhalfhr="0"+nowhalfhr}
         if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2))}
 
         //wieviel wh kommen in etwa von PV in den nächsten 24h
