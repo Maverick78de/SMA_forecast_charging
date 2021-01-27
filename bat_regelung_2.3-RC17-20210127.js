@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 RC16 2021/01/21*/
+/*Version 2.3 RC17 2021/01/27*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -27,12 +27,12 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     snowmode = 0, /*manuelles setzen des Schneemodus, dadurch wird in der Nachladeplanung die PV Prognose ignoriert, z.b. bei Schneebedeckten PV Modulen und der daraus resultierenden falschen Prognose*/
     gridprice = 15.805, /*(netto bezugspreis)*/
     batprice = 0, /*Speicherkosten pro kWh*/
-    taxprice = gridprice * 0.16, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
+    taxprice = gridprice * 0.19, /*Deutscher Sonderweg, Eigenverbrauch wird mit Steuer aus entgangenen Strombezug besteuert.*/
     pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
     lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
-    loadfact = 1-lossfactor+1,
+    loadfact = 1/lossfactor,
     stop_discharge = (start_charge * loadfact)+batprice
 // Ende Awattar
 
@@ -141,9 +141,9 @@ function processing() {
     }
   }
   // Lademenge
-  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*(1+1-wr_eff))
+  var ChaEnrg_full = Math.ceil((batcap * (100 - batsoc) / 100)*(1/wr_eff))
   var ChaEnrg = ChaEnrg_full
-  ChaEnrg = Math.max(Math.ceil((batcap * (bat_ziel - batsoc) / 100)*(1+1-wr_eff)), 0);
+  ChaEnrg = Math.max(Math.ceil((batcap * (bat_ziel - batsoc) / 100)*(1/wr_eff)), 0);
   var ChaTm = ChaEnrg/batwr_pwr; //Ladezeit
 
   if ( bat != 1785 && ChaTm <= 0 ) {
@@ -186,9 +186,9 @@ function processing() {
         nowhr = dt.getHours() + ":" + dt.getMinutes(),
         timeup = getDateObject(new Date().getTime()-1800000).getHours() + ":" + getDateObject(new Date().getTime()-1800000).getMinutes(),
         nowhalfhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2),
-        batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast*(1+1-wr_eff)),
+        batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast*(1/wr_eff)),
         hrstorun = 24
-		if (Number(nowhalfhr.split(':')[0]) < 10){nowhalfhr="0"+nowhalfhr}
+        if (Number(nowhalfhr.split(':')[0]) < 10){nowhalfhr="0"+nowhalfhr}
         if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2))}
 
         //wieviel wh kommen in etwa von PV in den nächsten 24h
@@ -279,15 +279,8 @@ function processing() {
             prclow = uniqueprclow
             prchigh = []
             prchigh = uniqueprchigh
-            prclow.sort(function(a, b, c){
-                return a[0] - b[0];
-            })
-            prchigh.sort(function(a, b, c){
-                return b[0] - a[0];
-            })
-
-            // neuaufbau poihigh 
-            var poitmp = [], pvpoi = [], m = 0
+            // neuaufbau poihigh ohne Nachladestunden
+            var poitmp = [], m = 0
             for (let l = 0; l < poihigh.length ; l++) {
                 poitmp[m] = poihigh[l]
                 m++
@@ -298,15 +291,20 @@ function processing() {
                 }
             }
             poihigh = []
-            poihigh = poitmp            
+            poihigh = poitmp
+            prclow.sort(function(a, b, c){
+                return a[0] - b[0];
+            })
+            prchigh.sort(function(a, b, c){
+                return b[0] - a[0];
+            })
             //nachlademenge 
             var chargewh = ((prchigh.length-1)*(grundlast/2)*loadfact)
             if (hrstorun < 24){
-               chargewh = chargewh-(pvwh*wr_eff)
+                chargewh = chargewh-(pvwh*wr_eff)
             }
-            var curbatwh = ((batcap/100)*(batsoc - batlimit)),
-            chargetime = Math.max((chargewh/maxchrg_def),0)
-
+            var curbatwh = ((batcap/100)*(batsoc - batlimit))
+            var chargetime = Math.max((chargewh/maxchrg_def),0)
             if (chargetime > 0 && prclow.length > 0){
                 var chrglength = Math.ceil(Math.max((chargewh-curbatwh)/maxchrg_def,0)*2) //Math.ceil(chargetime*2)
                 if (chrglength > prclow.length){chrglength=prclow.length}
@@ -315,7 +313,7 @@ function processing() {
                         console.log("Nachladezeit: " + prclow[o][1] +'-'+ prclow[o][2] + ' (' + Math.round(chargewh-curbatwh) + 'Wh)')
                     }
                 }
-                if (prclow.length > 0 && curbatwh < chargewh){
+                if (prclow.length > 0 && chargewh > 0){
                     for (let n = 0; n < chrglength ; n++) {
                         if (compareTime(prclow[n][1],prclow[n][2],"between")){
                             maxchrg = maxchrg_def
