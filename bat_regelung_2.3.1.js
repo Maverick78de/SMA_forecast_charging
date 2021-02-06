@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3 2021/02/01*/
+/*Version 2.3.1 2021/02/06*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -207,10 +207,10 @@ function processing() {
             var dateF = [dtyear, dtmonth, dtday]
 
             for (let sd = 0; sd < hrstorun*2 ; sd++) {
-                if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast/2) {
+                if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast) {
                     sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
                     for (let su = sd; su < hrstorun*2 ; su++) {
-                        if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast/2) {
+                        if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast) {
                             sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
                             su = hrstorun*2
                         }
@@ -299,7 +299,7 @@ function processing() {
                 return b[0] - a[0];
             })
             //nachlademenge 
-            var chargewh = ((prchigh.length-1)*(grundlast/2)*loadfact)
+            var chargewh = ((prchigh.length)*(grundlast/2)*loadfact)
             if (hrstorun < 24){
                 chargewh = chargewh-(pvwh*wr_eff)
             }
