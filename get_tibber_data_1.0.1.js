@@ -26,10 +26,15 @@ function requestData() {
         if(response.statusCode == 200) {
             let array = JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.today
                 array = array.concat(JSON.parse(body).data.viewer.homes[0].currentSubscription.priceInfo.tomorrow)
-            let jetzt = new Date();
-            
-            for(let i = jetzt.getHours(); i < array.length; i++) {
-                let a = i-jetzt.getHours()
+            var jetzt = new Date(),
+            midn = new Date(
+                jetzt.getFullYear(),
+                jetzt.getMonth(),
+                jetzt.getDate(),
+                0,0,0),
+            diffhr = Math.floor((jetzt.getTime() - midn.getTime())/3600000)
+            for(let i = diffhr; i < array.length; i++) {
+                let a = i-diffhr
                 let stateBaseName = "electricity.prices." + a + ".";
                 
                 createState(stateBaseName + "startTime", "", {
