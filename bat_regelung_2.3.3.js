@@ -2,14 +2,14 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3.2 2021/03/19*/
+/*Version 2.3.3 2021/06/02*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
 // statische Parameter
 var update = 15, /*Update interval in sek, 15 ist ein guter Wert*/
     pvpeak = 21610, /*pv anlagenleistung Wp */
-    batcap = 15360, /*batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
+    batcap = 15360, /*netto batterie kapazität in Wh, statisch wegen fehlerhafter Berechnung im SI*/
     surlimit = 70, /*pv einspeise limit in % */
     bat_grenze = 10, /*nutzbare mindestladung der Batterie, nicht absolutwert sondern zzgl unterer entladegrenze des Systems! z.b. 50% Entladetiefe + 10% -> bat_grenze = 10*/
     bat_ziel = 100, /*gewünschtes Ladeziel der Regelung, bei Blei ca 85% da dann die Ladeleistung stark abfällt und keine vernünftige Regelung mehr zulässt. Bei LI sollte es 100 sein.*/
@@ -388,10 +388,10 @@ function processing() {
     if (compareTime(pvstarttime, pvendtime, "between")){
       grundlast_calc = pwr_verbrauch
     }
-    if ( pvpower90 >= (pvlimit+grundlast_calc) ){
+    if ( pvpower90 > (pvlimit+grundlast_calc) ){
       if (compareTime(pvendtime, null, "<=", null)) {
         var minutes = 30
-        if (pvpower50 < (pvlimit+grundlast_calc)){
+        if (pvpower50 < pvlimit){
           var minutes = Math.round((100-(((pvlimit-pvpower50)/((pvpower90-pvpower50)/40))+50))*18/60)
         }  
         pvfc[f] = [pvpower50, pvpower90, minutes, pvstarttime, pvendtime];
@@ -417,7 +417,7 @@ function processing() {
     var get_wh = 0;
     for (let k = 0; k < pvfc.length; k++) {
       var pvpower = pvfc[k][0]
-      if (pvpower < pvlimit){
+      if (pvpower < pvlimit+grundlast_calc){
         pvpower = pvfc[k][1]
       }
       minutes = pvfc[k][2]
