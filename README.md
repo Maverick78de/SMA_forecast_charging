@@ -10,7 +10,7 @@ Für Hilfe oder Diskussionen rund um das Projekt bitte hier lang: https://www.ph
 Zum Einsatz kommen die Prognosen von Solcast (https://solcast.com/), es ist jedoch denkbar auch andere Prognosesysteme zu verwenden. 
 Entsprechende Code Anpassungen sollten sich aus dem Quelltext entnehmen lassen.
 
-Zusätzlich ist eine Ladung mit Netzstrom implementiert bei Einsatz dynamischer Strompreise des Anbieters Awattar Deutschland (https://www.awattar.de/) und Tibber. Weitere Anbieter sind auf Anfrage realisierbar.
+Zusätzlich ist eine Ladung mit Netzstrom implementiert bei Einsatz dynamischer Strompreise des Anbieters Awattar Deutschland (https://www.awattar.de/) und Tibber (https://invite.tibber.com/7e8d4d4b). Weitere Anbieter sind realisierbar.
 Dies ermöglich Lade- und Entladeregelungen nach Strompreisen, dies ist z.b sinnvoll bei stark negativen Strompreisen. Diese Funktion ist optional.
 
 Diese Scripte berücksichtigen keine Verbraucher in den Planungen! Die Arbeit der Scripte beruhen ausschließlich auf Standort bezogene Prognosen. 
