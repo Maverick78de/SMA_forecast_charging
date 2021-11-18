@@ -284,21 +284,8 @@ function processing() {
             for (let l = 0; l < poihigh.length ; l++) {
                 poitmp[m] = poihigh[l]
                 m++
-                if (prclow.length > 0){
-                    for (let p = 0; p < prclow.length ; p++) {
-                        if (poihigh[l][1] == prclow[p][1]){
-                            poitmp.pop()
-                            m--
-                        }            
-                    }
-                }
-                if (prchigh.length > 0){
-                    for (let q = 0; q < prchigh.length ; q++) {
-                        if (poihigh[l][1] == prchigh[q][1]){
-                            poitmp.pop()
-                            m--
-                        }            
-                    }
+                if (poihigh[l][2] == prclow[0][1]){
+                        l = poihigh.length
                 }
             }
             poihigh = []
