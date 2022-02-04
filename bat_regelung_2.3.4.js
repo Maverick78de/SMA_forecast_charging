@@ -2,7 +2,7 @@
 MIT License - see LICENSE.md 
 Copyright (c) [2020] [Matthias Boettger <mboe78@gmail.com>]
 */
-/*Version 2.3.3 2021/06/02*/
+/*Version 2.3.4 2022/02/04*/
 // Debug
 var debug = 1; /*debug ausgabe ein oder aus 1/0 */
 
@@ -31,7 +31,7 @@ var awattar = 1, /*wird Awattar benutzt (dyn. Strompreis) 0=nein, 1=ja*/
     pvprice = 10.9255,  /*pv preis*/
     start_charge = pvprice + taxprice, /*Eigenverbrauchspreis*/
     vis = 1, /*visualisierung der Strompreise nutzen ? 0=nein, 1=ja*/
-    lossfactor = wr_eff*wr_eff, /*System gesamtverlust in % = 2x wr_eff (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
+    lossfactor = 0.75, /*System gesamtverlust in % (Lade+Entlade Effizienz), nur für Awattar Preisberechnung*/
     loadfact = 1/lossfactor,
     stop_discharge = (start_charge * loadfact)+batprice
 // Ende Awattar
@@ -48,7 +48,7 @@ var CmpBMSOpMod = ModBusBat + ".holdingRegisters.40236_CmpBMSOpMod",/*Betriebsar
     BAT_SoC = ModBusBat + ".inputRegisters.30845_BAT_SoC", /*selbserklärend ;) */
     SelfCsmpDmLim = ModBusBat + ".inputRegisters.31009_SelfCsmpDmLim", /*unteres Entladelimit Eigenverbrauchsbereich (Saisonbetrieb)*/
     SelfCsmpBatChaSttMin =  ModBusBat + ".holdingRegisters.40073_SelfCsmpBatChaSttMin", /*unteres Entladelimit Eigenverbrauchsbereich SBS 3.7-10*/
-    RemainChrgTime = ModBusBat + ".inputRegisters.31007_RmgChaTm", /*verbleibende Restladezeit für Boost Ladung (nur PB Speicher?)*/
+    RemainChrgTime = ModBusBat + ".inputRegisters.31007_RmgChaTm", /*verbleibende Restladezeit für Boost Ladung (nur PB Speicher)*/
     PowerOut = ModBusBat + ".inputRegisters.30867_TotWOut", /*aktuelle Einspeiseleistung am Netzanschlußpunkt, BatWR*/
     WMaxCha = ModBusBat + ".holdingRegisters.40189_WMaxCha", /*max Ladeleistung BatWR*/
     WMaxDsch = ModBusBat + ".holdingRegisters.40191_WMaxDsch", /*max Entladeleistung BatWR*/
@@ -108,7 +108,7 @@ function processing() {
       }
   var maxchrg_def = batwr_pwr,
       maxdischrg_def = getState(WMaxDsch).val,
-      PwrAtCom_def = batwr_pwr/230*253, //max power bei 253V 
+      PwrAtCom_def = batwr_pwr*(253/230), //max power bei 253V 
       bat = getState(BatType).val,
       power_ac = getState(PowerAC).val*-1,
       pvlimit = (pvpeak / 100 * surlimit),
@@ -186,7 +186,7 @@ function processing() {
         nowhr = dt.getHours() + ":" + dt.getMinutes(),
         timeup = getDateObject(new Date().getTime()-1800000).getHours() + ":" + getDateObject(new Date().getTime()-1800000).getMinutes(),
         nowhalfhr = dt.getHours() + ":" + ('0' + Math.round(dt.getMinutes()/60)*30).slice(-2),
-        batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast*(1/wr_eff)),
+        batlefthrs = (batcap/100*(batsoc-batlimit))/(grundlast/Math.sqrt(lossfactor)),
         hrstorun = 24
         if (Number(nowhalfhr.split(':')[0]) < 10){nowhalfhr="0"+nowhalfhr}
         if (debug == 1){console.log("Bat h verbleibend " + batlefthrs.toFixed(2))}
@@ -196,7 +196,7 @@ function processing() {
         for (let p = 0; p < hrstorun*2; p++) {
             pvwh = pvwh + (getState(Javascript + ".electricity.pvforecast."+ p + ".power").val/2)
         }
-        if (pvwh > (grundlast*hrstorun/2) && snowmode === 0 ){
+        if (pvwh > (grundlast*hrstorun/2) && snowmode == 0 ){
             var sunup = getAstroDate("sunriseEnd").getHours() + ":" + getAstroDate("sunriseEnd").getMinutes(),
             sundown = getAstroDate("sunsetStart").getHours() + ":" + getAstroDate("sunsetStart").getMinutes(),
             dtmonth = "" + (dt.getMonth() + 1),
@@ -207,10 +207,10 @@ function processing() {
             var dateF = [dtyear, dtmonth, dtday]
 
             for (let sd = 0; sd < hrstorun*2 ; sd++) {
-                if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val < grundlast) {
+                if (getState(Javascript + ".electricity.pvforecast."+ sd + ".power").val <= grundlast) {
                     sundown = getState(Javascript + ".electricity.pvforecast."+ sd + ".startTime").val
                     for (let su = sd; su < hrstorun*2 ; su++) {
-                        if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val > grundlast) {
+                        if (getState(Javascript + ".electricity.pvforecast."+ su + ".power").val >= grundlast) {
                             sunup = getState(Javascript + ".electricity.pvforecast."+ su + ".startTime").val
                             su = hrstorun*2
                         }
@@ -279,39 +279,53 @@ function processing() {
             prclow = uniqueprclow
             prchigh = []
             prchigh = uniqueprchigh
+
+            prclow.sort(function(a, b, c){
+                return a[0] - b[0];
+            })
+
+            //nachlademenge 
+            var chargewh = ((prchigh.length)*(grundlast/2)*1/wr_eff)
+            if (hrstorun < 24 && snowmode == 0){
+                chargewh = chargewh-(pvwh*wr_eff)
+            }
+            var curbatwh = ((batcap/100)*(batsoc - batlimit))
+            var chrglength = Math.max((chargewh-curbatwh)/(maxchrg_def*wr_eff),0)*2 
             // neuaufbau poihigh ohne Nachladestunden
             var poitmp = [], m = 0
             for (let l = 0; l < poihigh.length ; l++) {
                 poitmp[m] = poihigh[l]
                 m++
-                if (poihigh[l][2] == prclow[0][1]){
-                        l = poihigh.length
+                if (prclow.length > 0){
+                    for (let p = 0; p < prclow.length ; p++) {
+                        if (poihigh[l][1] == prclow[p][1]){
+                            poitmp.pop()
+                            m--
+                        }            
+                    }
+                    if (poitmp.length > 0 /*&& prclow.length > 1 && poihigh[0][1] != prclow[0][1]*/){
+                        if (poihigh[l][2] == prclow[0][1]){
+                            l = poihigh.length
+                        }   
+                    }
                 }
             }
             poihigh = []
             poihigh = poitmp
-            prclow.sort(function(a, b, c){
-                return a[0] - b[0];
-            })
             prchigh.sort(function(a, b, c){
                 return b[0] - a[0];
             })
-            //nachlademenge 
-            var chargewh = ((prchigh.length)*(grundlast/2)*loadfact)
-            if (hrstorun < 24){
-                chargewh = chargewh-(pvwh*wr_eff)
+			
+            if (chrglength > prclow.length){
+                chrglength=prclow.length
             }
-            var curbatwh = ((batcap/100)*(batsoc - batlimit))
-            var chargetime = Math.max((chargewh/maxchrg_def),0)
-            if (chargetime > 0 && prclow.length > 0){
-                var chrglength = Math.ceil(Math.max((chargewh-curbatwh)/maxchrg_def,0)*2) //Math.ceil(chargetime*2)
-                if (chrglength > prclow.length){chrglength=prclow.length}
+            if (chrglength > 0 && prclow.length > 0){
                 if (debug == 1){
                     for (let o = 0; o < chrglength ; o++){
                         console.log("Nachladezeit: " + prclow[o][1] +'-'+ prclow[o][2] + ' (' + Math.round(chargewh-curbatwh) + 'Wh)')
                     }
                 }
-                if (prclow.length > 0 && chargewh > 0){
+                if (prclow.length > 0 && chargewh-curbatwh > 0){
                     for (let n = 0; n < chrglength ; n++) {
                         if (compareTime(prclow[n][1],prclow[n][2],"between")){
                             maxchrg = maxchrg_def
@@ -327,12 +341,12 @@ function processing() {
             return b[0] - a[0];
         });
         
-        var lefthrs = Math.ceil(batlefthrs*2)
+        var lefthrs = batlefthrs*2
         if (lefthrs > 0 && lefthrs > poihigh.length){
             lefthrs = poihigh.length
         }
         if (lefthrs > 0 && lefthrs < hrstorun*2 && pvwh < grundlast*24*wr_eff){
-            if (Math.ceil(batlefthrs*2) <= lefthrs){
+            if (batlefthrs*2 <= lefthrs){
                 maxdischrg = 0
                 for (let d = 0; d < lefthrs; d++) {
                     if (poihigh[d][0] > stop_discharge){
@@ -415,7 +429,7 @@ function processing() {
     var get_wh = 0;
     for (let k = 0; k < pvfc.length; k++) {
       var pvpower = pvfc[k][0]
-      if (pvpower < pvlimit+grundlast_calc){
+      if (pvpower < (pvlimit+grundlast_calc)){
         pvpower = pvfc[k][1]
       }
       minutes = pvfc[k][2]
@@ -433,7 +447,7 @@ function processing() {
       }
       get_wh = get_wh + (((pvpower/2)-((pvlimit+grundlast_calc)/2))*(minutes/30)) // wieviele Wh Überschuss???
     }
-    if (debug == 1){console.log("Überschuß " + get_wh.toFixed(0) + "Wh")}
+    if (debug == 1){console.log("Überschuß " + Math.round(get_wh) + "Wh")}
     var pvlimit_calc = pvlimit,
         min_pwr = 0
     //Scenario 4
@@ -464,7 +478,7 @@ function processing() {
       if (power_ac <= 10 && current_pwr_diff > 0 ){ 
         max_pwr = Math.round(pvfc[0][1]-pvlimit_calc)
         if (current_pwr_diff > max_pwr){
-          max_pwr = current_pwr_diff
+          max_pwr = Math.round(current_pwr_diff)
           if (awattar_active == 1){
             SpntCom = 803
             PwrAtCom = PwrAtCom_def
@@ -473,7 +487,7 @@ function processing() {
       }
     }
 
-    max_pwr = Math.min(Math.max(max_pwr, min_pwr), batwr_pwr) //abfangen negativer werte, limitiere auf min_pwr
+    max_pwr = Math.round(Math.min(Math.max(max_pwr, min_pwr), batwr_pwr)) //abfangen negativer werte, limitiere auf min_pwr
     //berechnung Ende
 
     for (let h = 0; h < (ChaTm*2); h++) {
