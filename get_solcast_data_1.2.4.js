@@ -87,7 +87,7 @@ function create_datapoints(){
 
 create_datapoints();
 
-// 10 freie API Request pro Tag, daher 1x stündlich Abruf 
+// 10 freie API Request pro Tag
 schedule("0 3,5,7,9,11,13,15,17,19,21 * * *", function () {
     requestData();
 });
